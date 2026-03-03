@@ -2,6 +2,26 @@
 
 > v1 (Phase 0~5) 기록 아카이브: [PROGRESS_V1.md](./PROGRESS_V1.md)
 
+## 2026-03-04 — agent (HTML 이메일 렌더링)
+### 완료한 작업
+- `backend/app/models/mail.py`: `body_html` 컬럼 추가 (Text, nullable)
+- `backend/app/services/gmail_service.py`: `_extract_body()` → text+html dict 반환, `_parse_message()` 및 sync 함수에서 body_html 저장
+- `backend/app/services/naver_service.py`: 동일하게 text+html 동시 추출
+- `backend/app/services/helpers.py`: API 응답에 `body_html` 포함
+- `frontend/src/components/HtmlEmailRenderer.tsx`: DOMPurify whitelist 기반 안전한 HTML 렌더링 컴포넌트 신규 생성
+- `frontend/src/components/MailDetailView.tsx`: body_html 유무에 따른 조건부 렌더링
+- `frontend/src/types/mail.ts`: `body_html` 필드 추가
+- `frontend/src/app/globals.css`: `@tailwindcss/typography` 플러그인 추가
+- `sync_gmail_messages()`에서 `body_html` 저장 누락 버그 수정
+- PR #2 생성: https://github.com/Kimgyuilli/-mail-organizer/pull/2
+### 다음 할 일
+- PR #2 머지 후 배포 확인
+- Gmail/Naver HTML 이메일 수동 렌더링 테스트
+- AI 분류 재실행 (DB 초기화로 기존 분류 소실됨)
+### 이슈/참고
+- SQLite `create_all()`은 기존 테이블에 컬럼 추가 불가 — DB 재생성 필요했음
+- body_html 테스트 위해 mails 전체 삭제 → Classification CASCADE 삭제됨, 재분류 필요
+
 ## 2026-03-02 — agent (CI/CD 파이프라인 구축)
 ### 완료한 작업
 - `.github/workflows/ci.yml`: CI 파이프라인 (backend-lint, backend-test, frontend-lint, frontend-test, frontend-build)

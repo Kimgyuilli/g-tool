@@ -23,3 +23,15 @@
 | CD: 자동 배포 워크플로우 | agent | done | CI | workflow_run → SSH → docker compose |
 | ~~gh-aw ci-doctor~~ | — | 취소 | — | Copilot Pro 필요, 추후 재검토 |
 | ~~gh-aw pr-fix~~ | — | 취소 | — | Copilot Pro 필요, 추후 재검토 |
+
+## Phase 8: HTML 이메일 렌더링
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| DB body_html 컬럼 추가 | backend-dev | done | — | Mail 모델에 Text nullable 컬럼 |
+| Gmail/Naver _extract_body → text+html 추출 | backend-dev | done | — | dict 반환 방식으로 변경 |
+| API 응답에 body_html 포함 | backend-dev | done | — | helpers.py |
+| DOMPurify 기반 HtmlEmailRenderer 컴포넌트 | frontend-dev | done | — | whitelist 방식 XSS 방지 |
+| MailDetailView 조건부 렌더링 | frontend-dev | done | — | html 있으면 HTML, 없으면 plain text |
+| Tailwind Typography 플러그인 | frontend-dev | done | — | @tailwindcss/typography |
+| sync_gmail_messages body_html 누락 수정 | backend-dev | done | — | 단일 페이지 sync 함수 버그 |
