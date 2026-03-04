@@ -188,7 +188,8 @@ async def create_task(db: AsyncSession, user_id: int, data: TaskCreate) -> dict:
     db.add(task)
     await db.commit()
     await db.refresh(task)
-    return _task_to_dict(task)
+    # 새 태스크는 subtasks가 없으므로 직접 dict 반환
+    return _task_to_dict(task, subtasks_loaded=[])
 
 
 async def update_task(
@@ -358,8 +359,8 @@ async def _get_subtask_or_404(
     return subtask
 
 
-def _task_to_dict(task: Task) -> dict:
-    subtasks = getattr(task, "subtasks", None) or []
+def _task_to_dict(task: Task, subtasks_loaded: list | None = None) -> dict:
+    subtasks = subtasks_loaded if subtasks_loaded is not None else task.subtasks
     completed = sum(1 for s in subtasks if s.is_completed)
     return {
         "id": task.id,
