@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { CategoryBadge } from "@/components/CategoryBadge";
+import { CategoryBadge } from "@/features/mail/components/CategoryBadge";
 
 describe("CategoryBadge", () => {
   it("displays category name", () => {

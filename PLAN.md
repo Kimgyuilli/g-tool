@@ -95,3 +95,14 @@
 - **데이터 캐싱**: 초기엔 DB 저장 없이 실시간 API 호출, 필요 시 캐싱 추가
 - **스코프**: `calendar.readonly`로 시작 (읽기 전용), 이벤트 생성/수정은 추후 확장 → **9-4에서 쓰기 권한 확장**
 - **google-api-python-client 이미 설치됨** — Calendar API v3 바로 사용 가능
+
+## Phase 10: DDD 도메인 패키지 분리
+
+> 백엔드를 DDD 기반 도메인 패키지(core/, auth/, mail/, calendar/)로, 프론트엔드를 feature 폴더(features/mail/, features/calendar/, features/auth/)로 재구성
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| Phase A: Backend core/auth/calendar 패키지 생성 | agent | done | — | core/, auth/, calendar/ |
+| Phase B: Backend mail 도메인 + main.py 업데이트 | agent | done | Phase A | mail/, background_sync, shim 제거 |
+| Phase C: Frontend feature 폴더 구조 | agent | done | — | features/mail/, calendar/, auth/ |
+| 검증: lint + 테스트 + 빌드 | agent | done | Phase A,B,C | ruff, pytest 24/24, pnpm lint+build 통과 |

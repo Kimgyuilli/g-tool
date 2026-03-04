@@ -1,20 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { useAuth } from "@/hooks/useAuth";
-import { useMessages } from "@/hooks/useMessages";
-import { useCategoryCounts } from "@/hooks/useCategoryCounts";
-import { useFeedbackStats } from "@/hooks/useFeedbackStats";
-import { useMailActions } from "@/hooks/useMailActions";
-import { useNaverConnect } from "@/hooks/useNaverConnect";
-import { useDragAndDrop } from "@/hooks/useDragAndDrop";
-import { LoginScreen } from "@/components/LoginScreen";
-import { MailDetailView } from "@/components/MailDetailView";
+import { useAuth } from "@/features/auth/hooks/useAuth";
+import { useMessages } from "@/features/mail/hooks/useMessages";
+import { useCategoryCounts } from "@/features/mail/hooks/useCategoryCounts";
+import { useFeedbackStats } from "@/features/mail/hooks/useFeedbackStats";
+import { useMailActions } from "@/features/mail/hooks/useMailActions";
+import { useNaverConnect } from "@/features/auth/hooks/useNaverConnect";
+import { useDragAndDrop } from "@/features/mail/hooks/useDragAndDrop";
+import { LoginScreen } from "@/features/auth/components/LoginScreen";
+import { MailDetailView } from "@/features/mail/components/MailDetailView";
 import { AppHeader } from "@/components/AppHeader";
-import { NaverConnectModal } from "@/components/NaverConnectModal";
-import { CategorySidebar } from "@/components/CategorySidebar";
-import { MailListView } from "@/components/MailListView";
-import { CalendarView } from "@/components/CalendarView";
+import { NaverConnectModal } from "@/features/auth/components/NaverConnectModal";
+import { CategorySidebar } from "@/features/mail/components/CategorySidebar";
+import { MailListView } from "@/features/mail/components/MailListView";
+import { CalendarPage } from "@/features/calendar/CalendarPage";
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -235,7 +235,7 @@ export default function Home() {
       )}
 
       {activePage === "calendar" && (
-        <CalendarView userId={userId} />
+        <CalendarPage userId={userId} />
       )}
     </div>
   );

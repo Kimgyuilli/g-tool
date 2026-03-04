@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
-from app.models.base import Base, get_db
+from app.core.database import Base, get_db
 
 # In-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite://"
@@ -60,7 +60,7 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
 @pytest.fixture
 async def sample_user(db_session: AsyncSession):
     """Create a sample user with Google OAuth credentials."""
-    from app.models import User
+    from app.mail.models import User
 
     user = User(
         email="test@example.com",
@@ -78,7 +78,7 @@ async def sample_mails(db_session: AsyncSession, sample_user):
     """Create sample Gmail and Naver mails."""
     from datetime import UTC, datetime
 
-    from app.models import Mail
+    from app.mail.models import Mail
 
     gmail1 = Mail(
         user_id=sample_user.id,
@@ -128,7 +128,7 @@ async def sample_mails(db_session: AsyncSession, sample_user):
 @pytest.fixture
 async def sample_labels(db_session: AsyncSession, sample_user):
     """Create sample labels for categories."""
-    from app.models import Label
+    from app.mail.models import Label
 
     label_work = Label(
         user_id=sample_user.id,
@@ -154,7 +154,7 @@ async def sample_classification(
     db_session: AsyncSession, sample_mails, sample_labels
 ):
     """Create a sample classification for the first Gmail mail."""
-    from app.models import Classification
+    from app.mail.models import Classification
 
     classification = Classification(
         mail_id=sample_mails["gmail1"].id,

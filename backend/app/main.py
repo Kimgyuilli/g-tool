@@ -8,11 +8,15 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.auth.router import router as auth_router
+from app.calendar.router import router as calendar_router
 from app.config import settings
-from app.models import Base
-from app.models.base import engine
-from app.routers import auth, calendar, classify, gmail, inbox, naver
-from app.services.background_sync import sync_all_users
+from app.core.background_sync import sync_all_users
+from app.core.database import Base, engine
+from app.mail.routers.classify import router as classify_router
+from app.mail.routers.gmail import router as gmail_router
+from app.mail.routers.inbox import router as inbox_router
+from app.mail.routers.naver import router as naver_router
 
 logger = logging.getLogger(__name__)
 
@@ -55,12 +59,12 @@ app.add_middleware(
 )
 
 
-app.include_router(auth.router)
-app.include_router(calendar.router)
-app.include_router(classify.router)
-app.include_router(gmail.router)
-app.include_router(inbox.router)
-app.include_router(naver.router)
+app.include_router(auth_router)
+app.include_router(calendar_router)
+app.include_router(classify_router)
+app.include_router(gmail_router)
+app.include_router(inbox_router)
+app.include_router(naver_router)
 
 
 @app.get("/health")

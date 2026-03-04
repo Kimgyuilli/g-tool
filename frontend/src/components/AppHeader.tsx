@@ -1,4 +1,4 @@
-import { UserInfo } from "@/types/mail";
+import { UserInfo } from "@/features/auth/types";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,

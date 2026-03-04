@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { MailListView } from "@/components/MailListView";
-import { MailMessage } from "@/types/mail";
+import { MailListView } from "@/features/mail/components/MailListView";
+import { MailMessage } from "@/features/mail/types";
 
 describe("MailListView", () => {
   const mockProps = {

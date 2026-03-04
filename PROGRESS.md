@@ -2,6 +2,36 @@
 
 > v1 (Phase 0~5) 기록 아카이브: [PROGRESS_V1.md](./PROGRESS_V1.md)
 
+## 2026-03-04 — agent (Phase 10: DDD 도메인 패키지 분리 완료)
+### 완료한 작업
+**백엔드 — DDD 패키지 구조**
+- `app/core/`: database.py, exceptions.py, dependencies.py, background_sync.py
+- `app/auth/`: router.py, service.py, dependencies.py
+- `app/calendar/`: router.py, service.py, schemas.py
+- `app/mail/`: models.py (4파일 통합), routers/ (gmail, naver, inbox, classify), services/ (gmail, naver, classifier, feedback, helpers)
+- 기존 flat 구조 (models/, routers/, services/, dependencies.py, exceptions.py) 완전 삭제
+- main.py, conftest.py, test_classify.py import 경로 업데이트
+- ruff clean, pytest 24/24 통과
+
+**프론트엔드 — feature 폴더 구조**
+- `features/mail/`: components/ (7개), hooks/ (5개), types.ts, constants.ts
+- `features/calendar/`: CalendarPage.tsx, components/ (4개), hooks/ (1개), types.ts
+- `features/auth/`: components/ (2개), hooks/ (2개), types.ts (UserInfo 분리)
+- 공통 유지: components/AppHeader.tsx, Pagination.tsx, ui/
+- page.tsx, AppHeader.tsx, 테스트 5개 파일 import 경로 업데이트
+- 기존 hooks/, types/, constants/ 디렉토리 삭제
+- pnpm lint + pnpm build 통과
+
+### 다음 할 일
+- PR 생성 후 main에 병합
+- page.tsx → thin shell + MailPage 추출 (선택적 추가 리팩토링)
+- 주간/일간 캘린더 뷰 (Phase 9-3 pending)
+
+### 이슈/참고
+- CalendarView → CalendarPage로 rename (feature 폴더 관례에 맞춤)
+- UserInfo 타입은 features/auth/types.ts로 분리, useMailActions에서 cross-feature import
+- MailPage 추출은 AppHeader와의 상태 공유 복잡성으로 인해 추후 진행
+
 ## 2026-03-04 — agent (Phase 9-4: 캘린더 이벤트 생성 기능 완료)
 ### 완료한 작업
 **백엔드**

@@ -1,0 +1,44 @@
+"""Auth dependencies: get_google_user, get_naver_user."""
+
+from __future__ import annotations
+
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.auth.service import build_credentials
+from app.core.database import get_db
+from app.core.dependencies import get_current_user
+from app.core.exceptions import AccountNotConnectedException
+from app.mail.models import User
+
+
+async def get_google_user(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> tuple[User, object]:
+    """Validate user has Google OAuth connected and return (user, credentials).
+
+    Also handles token refresh if expired.
+    """
+    if not user.google_oauth_token or not user.google_refresh_token:
+        raise AccountNotConnectedException("Google")
+
+    credentials = build_credentials(user.google_oauth_token, user.google_refresh_token)
+
+    if credentials.expired and credentials.refresh_token:
+        from google.auth.transport.requests import Request
+
+        credentials.refresh(Request())
+        user.google_oauth_token = credentials.token
+        await db.commit()
+
+    return user, credentials
+
+
+async def get_naver_user(
+    user: User = Depends(get_current_user),
+) -> User:
+    """Validate user has Naver IMAP credentials connected."""
+    if not user.naver_email or not user.naver_app_password:
+        raise AccountNotConnectedException("Naver")
+    return user

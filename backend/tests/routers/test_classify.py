@@ -68,7 +68,7 @@ async def test_update_classification_unauthorized(
     client: AsyncClient, sample_classification, db_session
 ):
     """PUT /api/classify/update should return 403 when user doesn't own the mail."""
-    from app.models import User
+    from app.mail.models import User
 
     # Create another user
     other_user = User(

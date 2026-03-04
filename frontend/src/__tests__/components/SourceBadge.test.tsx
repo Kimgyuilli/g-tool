@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, it, expect } from "vitest";
-import { SourceBadge } from "@/components/SourceBadge";
+import { SourceBadge } from "@/features/mail/components/SourceBadge";
 
 describe("SourceBadge", () => {
   it("displays G for gmail source", () => {

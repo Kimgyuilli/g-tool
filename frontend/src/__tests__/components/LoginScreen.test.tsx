@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { LoginScreen } from "@/components/LoginScreen";
+import { LoginScreen } from "@/features/auth/components/LoginScreen";
 
 describe("LoginScreen", () => {
   it("renders Mail Organizer title", () => {
