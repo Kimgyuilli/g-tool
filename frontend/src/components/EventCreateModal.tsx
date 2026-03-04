@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
@@ -28,18 +28,26 @@ export function EventCreateModal({
   onSubmit,
 }: EventCreateModalProps) {
   const primaryCalendar = calendars.find((c) => c.primary);
-  const defaultDateStr = (defaultDate || new Date()).toISOString().slice(0, 10);
 
   const [summary, setSummary] = useState("");
   const [allDay, setAllDay] = useState(false);
-  const [startDate, setStartDate] = useState(defaultDateStr);
+  const [startDate, setStartDate] = useState("");
   const [startTime, setStartTime] = useState("09:00");
-  const [endDate, setEndDate] = useState(defaultDateStr);
+  const [endDate, setEndDate] = useState("");
   const [endTime, setEndTime] = useState("10:00");
   const [description, setDescription] = useState("");
   const [location, setLocation] = useState("");
   const [calendarId, setCalendarId] = useState(primaryCalendar?.id || calendars[0]?.id || "primary");
   const [saving, setSaving] = useState(false);
+
+  // 모달이 열릴 때 defaultDate로 날짜 초기화
+  useEffect(() => {
+    if (open) {
+      const dateStr = (defaultDate || new Date()).toISOString().slice(0, 10);
+      setStartDate(dateStr);
+      setEndDate(dateStr);
+    }
+  }, [open, defaultDate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
