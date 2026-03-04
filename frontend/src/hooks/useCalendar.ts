@@ -28,28 +28,39 @@ export function useCalendar({ userId, enabled = true }: UseCalendarOptions) {
     }
   }, [userId]);
 
-  // 이벤트 로드 (현재 월 기준)
+  // 이벤트 로드 (현재 월 기준, 모든 캘린더에서)
   const loadEvents = useCallback(async (date?: Date) => {
-    if (!userId) return;
+    if (!userId || calendars.length === 0) return;
     setLoading(true);
     try {
       const target = date || currentDate;
       const year = target.getFullYear();
       const month = target.getMonth();
-      // 해당 월의 첫날 ~ 마지막날 (여유있게 전후 1주)
       const timeMin = new Date(year, month, 1 - 7).toISOString();
       const timeMax = new Date(year, month + 1, 7).toISOString();
 
-      const data = await apiFetch<EventsResponse>(
-        `/api/calendar/events?user_id=${userId}&time_min=${timeMin}&time_max=${timeMax}`
+      // 모든 캘린더에서 이벤트를 병렬로 가져옴
+      const results = await Promise.allSettled(
+        calendars.map((cal) =>
+          apiFetch<EventsResponse>(
+            `/api/calendar/events?user_id=${userId}&calendar_id=${encodeURIComponent(cal.id)}&time_min=${timeMin}&time_max=${timeMax}`
+          )
+        )
       );
-      setEvents(data.events);
+
+      const allEvents: CalendarEvent[] = [];
+      for (const result of results) {
+        if (result.status === "fulfilled") {
+          allEvents.push(...result.value.events);
+        }
+      }
+      setEvents(allEvents);
     } catch {
       setEvents([]);
     } finally {
       setLoading(false);
     }
-  }, [userId, currentDate]);
+  }, [userId, currentDate, calendars]);
 
   // enabled일 때 캘린더 목록 로드
   useEffect(() => {
