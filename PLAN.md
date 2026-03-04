@@ -131,3 +131,28 @@
 | TaskDetailView 컴포넌트 | frontend-dev | done | types, useSubtasks | 서브태스크 목록 |
 | TodoPage 통합 | frontend-dev | done | 위 전체 | 3-panel 레이아웃 |
 | page.tsx + AppHeader 연동 | frontend-dev | done | TodoPage | nav에 할일 탭 추가 |
+
+## Phase 12: Todo 칸반 보드 리팩토링
+
+> Project 계층 제거 → Task + Subtask 2단계 플랫 구조. 3열 칸반 보드 UI + @dnd-kit 드래그앤드롭.
+
+### 12-1. Backend — 모델/API 단순화
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| Project 모델 삭제, Task에 user_id 추가 | backend-dev | done | — | models.py |
+| Project 스키마 삭제 | backend-dev | done | — | schemas.py |
+| Project 서비스 삭제, Task/Subtask 직접 검증 | backend-dev | done | — | service.py |
+| Project 엔드포인트 삭제, GET /tasks 추가 | backend-dev | done | — | router.py |
+
+### 12-2. Frontend — 칸반 보드 UI
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| types.ts 리팩토링 (Project 제거, status 변경) | frontend-dev | done | — | TaskStatus 타입 추가 |
+| useTodo 훅 리팩토링 (플랫 조회) | frontend-dev | done | — | GET /tasks |
+| KanbanBoard 컴포넌트 | frontend-dev | done | — | @dnd-kit, 3열 칸반 |
+| KanbanCard 컴포넌트 | frontend-dev | done | — | 드래그, 인라인 확장 |
+| TodoPage 리팩토링 | frontend-dev | done | — | KanbanBoard만 렌더링 |
+| 구 컴포넌트 삭제 | frontend-dev | done | — | ProjectSidebar, TaskListView, TaskDetailView |
+| 검증: ruff + lint + build | agent | done | — | 모두 통과 |

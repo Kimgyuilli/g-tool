@@ -1,15 +1,9 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { useTodo } from "@/features/todo/hooks/useTodo";
 import { useSubtasks } from "@/features/todo/hooks/useSubtasks";
-import { ProjectSidebar } from "@/features/todo/components/ProjectSidebar";
-import { TaskListView } from "@/features/todo/components/TaskListView";
-import { TaskDetailView } from "@/features/todo/components/TaskDetailView";
-import {
-  ResizablePanelGroup,
-  ResizablePanel,
-  ResizableHandle,
-} from "@/components/ui/resizable";
+import { KanbanBoard } from "@/features/todo/components/KanbanBoard";
 import { toast } from "sonner";
 
 interface TodoPageProps {
@@ -17,139 +11,99 @@ interface TodoPageProps {
 }
 
 export function TodoPage({ userId }: TodoPageProps) {
+  const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
+
   const {
-    projects,
     tasks,
-    selectedProjectId,
-    selectedTask,
-    selectProject,
-    setSelectedTaskId,
-    createProject,
-    deleteProject,
+    setTasks,
     createTask,
     updateTask,
     deleteTask,
+    reorderTasks,
   } = useTodo({ userId, enabled: true });
 
   const { subtasks, createSubtask, toggleSubtask, deleteSubtask } =
-    useSubtasks({ userId, taskId: selectedTask?.id ?? null });
+    useSubtasks({ userId, taskId: expandedTaskId });
 
-  const selectedProject = projects.find((p) => p.id === selectedProjectId);
-
-  const handleCreateProject = async (name: string) => {
-    try {
-      await createProject({ name });
-      toast.success("프로젝트가 생성되었습니다");
-    } catch {
-      toast.error("프로젝트 생성에 실패했습니다");
-    }
-  };
-
-  const handleDeleteProject = async (id: number) => {
-    try {
-      await deleteProject(id);
-      toast.success("프로젝트가 삭제되었습니다");
-    } catch {
-      toast.error("프로젝트 삭제에 실패했습니다");
-    }
-  };
+  const handleToggleExpand = useCallback((taskId: number) => {
+    setExpandedTaskId((prev) => (prev === taskId ? null : taskId));
+  }, []);
 
   const handleCreateTask = async (title: string) => {
-    if (!selectedProjectId) return;
     try {
-      await createTask({ project_id: selectedProjectId, title });
+      await createTask({ title });
     } catch {
       toast.error("태스크 생성에 실패했습니다");
     }
   };
 
-  const handleToggleStatus = async (taskId: number, currentStatus: string) => {
-    const next = currentStatus === "done" ? "todo" : "done";
+  const handleUpdateTask = async (taskId: number, data: Parameters<typeof updateTask>[1]) => {
     try {
-      await updateTask(taskId, { status: next });
+      return await updateTask(taskId, data);
     } catch {
-      toast.error("상태 변경에 실패했습니다");
+      toast.error("태스크 수정에 실패했습니다");
+      return null;
     }
   };
 
   const handleDeleteTask = async (taskId: number) => {
     try {
       await deleteTask(taskId);
+      if (expandedTaskId === taskId) setExpandedTaskId(null);
       toast.success("태스크가 삭제되었습니다");
     } catch {
       toast.error("태스크 삭제에 실패했습니다");
     }
   };
 
-  const handleCreateSubtask = async (title: string) => {
-    if (!selectedTask) return;
+  const handleReorderTasks = async (items: { id: number; position: number; status?: string }[]) => {
     try {
-      await createSubtask({ task_id: selectedTask.id, title });
+      await reorderTasks(items);
+    } catch {
+      toast.error("순서 변경에 실패했습니다");
+    }
+  };
+
+  const handleCreateSubtask = async (title: string) => {
+    if (!expandedTaskId) return;
+    try {
+      await createSubtask({ task_id: expandedTaskId, title });
     } catch {
       toast.error("서브태스크 생성에 실패했습니다");
     }
   };
 
+  const handleToggleSubtask = async (subtaskId: number) => {
+    try {
+      return await toggleSubtask(subtaskId);
+    } catch {
+      toast.error("상태 변경에 실패했습니다");
+      return null;
+    }
+  };
+
+  const handleDeleteSubtask = async (subtaskId: number) => {
+    try {
+      await deleteSubtask(subtaskId);
+    } catch {
+      toast.error("서브태스크 삭제에 실패했습니다");
+    }
+  };
+
   return (
-    <div className="flex-1 overflow-hidden flex">
-      {/* Project sidebar */}
-      <aside className="hidden md:flex w-56 shrink-0 border-r overflow-auto">
-        <ProjectSidebar
-          projects={projects}
-          selectedProjectId={selectedProjectId}
-          onSelectProject={selectProject}
-          onCreateProject={handleCreateProject}
-          onDeleteProject={handleDeleteProject}
-        />
-      </aside>
-
-      <ResizablePanelGroup orientation="horizontal" className="flex-1">
-        {/* Task list */}
-        <ResizablePanel
-          defaultSize={selectedTask ? 50 : 100}
-          minSize={30}
-        >
-          {selectedProject ? (
-            <TaskListView
-              tasks={tasks}
-              selectedTaskId={selectedTask?.id ?? null}
-              projectName={selectedProject.name}
-              onSelectTask={setSelectedTaskId}
-              onCreateTask={handleCreateTask}
-              onToggleStatus={handleToggleStatus}
-              onDeleteTask={handleDeleteTask}
-            />
-          ) : (
-            <div className="flex items-center justify-center h-full text-muted-foreground text-sm">
-              프로젝트를 선택하세요
-            </div>
-          )}
-        </ResizablePanel>
-
-        {/* Task detail */}
-        {selectedTask && (
-          <>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={50} minSize={25}>
-              <TaskDetailView
-                task={selectedTask}
-                subtasks={subtasks}
-                onClose={() => setSelectedTaskId(null)}
-                onUpdateTask={async (taskId, data) => {
-                  try {
-                    await updateTask(taskId, data);
-                  } catch {
-                    toast.error("태스크 수정에 실패했습니다");
-                  }
-                }}
-                onCreateSubtask={handleCreateSubtask}
-                onToggleSubtask={toggleSubtask}
-                onDeleteSubtask={deleteSubtask}
-              />
-            </ResizablePanel>
-          </>
-        )}
-      </ResizablePanelGroup>
-    </div>
+    <KanbanBoard
+      tasks={tasks}
+      setTasks={setTasks}
+      expandedTaskId={expandedTaskId}
+      subtasks={subtasks}
+      onToggleExpand={handleToggleExpand}
+      onCreateTask={handleCreateTask}
+      onUpdateTask={handleUpdateTask}
+      onDeleteTask={handleDeleteTask}
+      onReorderTasks={handleReorderTasks}
+      onCreateSubtask={handleCreateSubtask}
+      onToggleSubtask={handleToggleSubtask}
+      onDeleteSubtask={handleDeleteSubtask}
+    />
   );
 }

@@ -7,10 +7,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.todo.models import Project, Subtask, Task
+from app.todo.models import Subtask, Task
 from app.todo.schemas import (
-    ProjectCreate,
-    ProjectUpdate,
     ReorderRequest,
     SubtaskCreate,
     SubtaskUpdate,
@@ -19,156 +17,26 @@ from app.todo.schemas import (
 )
 
 # ---------------------------------------------------------------------------
-# Projects
-# ---------------------------------------------------------------------------
-
-
-async def get_projects(db: AsyncSession, user_id: int) -> list[dict]:
-    """프로젝트 목록 조회 (task_count 포함)."""
-    result = await db.execute(
-        select(Project)
-        .where(Project.user_id == user_id)
-        .order_by(Project.position)
-    )
-    projects = result.scalars().all()
-
-    # task count 조회
-    count_result = await db.execute(
-        select(Task.project_id, func.count(Task.id))
-        .where(Task.project_id.in_([p.id for p in projects]))
-        .group_by(Task.project_id)
-    )
-    task_counts = dict(count_result.all())
-
-    return [
-        {
-            "id": p.id,
-            "name": p.name,
-            "description": p.description,
-            "color": p.color,
-            "position": p.position,
-            "task_count": task_counts.get(p.id, 0),
-            "created_at": p.created_at.isoformat() if p.created_at else None,
-            "updated_at": p.updated_at.isoformat() if p.updated_at else None,
-        }
-        for p in projects
-    ]
-
-
-async def create_project(
-    db: AsyncSession, user_id: int, data: ProjectCreate
-) -> dict:
-    """프로젝트 생성."""
-    # position: 현재 최대값 + 1
-    max_pos = await db.execute(
-        select(func.max(Project.position)).where(Project.user_id == user_id)
-    )
-    pos = (max_pos.scalar() or 0) + 1.0
-
-    project = Project(
-        user_id=user_id,
-        name=data.name,
-        description=data.description,
-        color=data.color,
-        position=pos,
-    )
-    db.add(project)
-    await db.commit()
-    await db.refresh(project)
-    return {
-        "id": project.id,
-        "name": project.name,
-        "description": project.description,
-        "color": project.color,
-        "position": project.position,
-        "task_count": 0,
-        "created_at": project.created_at.isoformat() if project.created_at else None,
-        "updated_at": project.updated_at.isoformat() if project.updated_at else None,
-    }
-
-
-async def update_project(
-    db: AsyncSession, user_id: int, project_id: int, data: ProjectUpdate
-) -> dict:
-    """프로젝트 수정."""
-    project = await _get_project_or_404(db, user_id, project_id)
-    if data.name is not None:
-        project.name = data.name
-    if data.description is not None:
-        project.description = data.description
-    if data.color is not None:
-        project.color = data.color
-    await db.commit()
-    await db.refresh(project)
-
-    count_result = await db.execute(
-        select(func.count(Task.id)).where(Task.project_id == project.id)
-    )
-    task_count = count_result.scalar() or 0
-
-    return {
-        "id": project.id,
-        "name": project.name,
-        "description": project.description,
-        "color": project.color,
-        "position": project.position,
-        "task_count": task_count,
-        "created_at": project.created_at.isoformat() if project.created_at else None,
-        "updated_at": project.updated_at.isoformat() if project.updated_at else None,
-    }
-
-
-async def delete_project(db: AsyncSession, user_id: int, project_id: int) -> None:
-    """프로젝트 삭제 (cascade)."""
-    project = await _get_project_or_404(db, user_id, project_id)
-    await db.delete(project)
-    await db.commit()
-
-
-async def reorder_projects(
-    db: AsyncSession, user_id: int, data: ReorderRequest
-) -> None:
-    """프로젝트 순서 변경."""
-    for item in data.items:
-        result = await db.execute(
-            select(Project).where(
-                Project.id == item["id"], Project.user_id == user_id
-            )
-        )
-        project = result.scalar_one_or_none()
-        if project:
-            project.position = item["position"]
-    await db.commit()
-
-
-# ---------------------------------------------------------------------------
 # Tasks
 # ---------------------------------------------------------------------------
 
 
-async def get_tasks_by_project(
-    db: AsyncSession, user_id: int, project_id: int
-) -> list[dict]:
-    """프로젝트의 태스크 목록 조회 (subtask count 포함)."""
-    await _get_project_or_404(db, user_id, project_id)
-
+async def get_tasks(db: AsyncSession, user_id: int) -> list[dict]:
+    """사용자의 전체 태스크 목록 조회 (subtask count 포함)."""
     result = await db.execute(
         select(Task)
-        .where(Task.project_id == project_id)
+        .where(Task.user_id == user_id)
         .options(selectinload(Task.subtasks))
         .order_by(Task.position)
     )
     tasks = result.scalars().all()
-
     return [_task_to_dict(t) for t in tasks]
 
 
 async def create_task(db: AsyncSession, user_id: int, data: TaskCreate) -> dict:
     """태스크 생성."""
-    await _get_project_or_404(db, user_id, data.project_id)
-
     max_pos = await db.execute(
-        select(func.max(Task.position)).where(Task.project_id == data.project_id)
+        select(func.max(Task.position)).where(Task.user_id == user_id)
     )
     pos = (max_pos.scalar() or 0) + 1.0
 
@@ -177,7 +45,7 @@ async def create_task(db: AsyncSession, user_id: int, data: TaskCreate) -> dict:
         due_date = datetime.fromisoformat(data.due_date)
 
     task = Task(
-        project_id=data.project_id,
+        user_id=user_id,
         title=data.title,
         description=data.description,
         status=data.status,
@@ -188,7 +56,6 @@ async def create_task(db: AsyncSession, user_id: int, data: TaskCreate) -> dict:
     db.add(task)
     await db.commit()
     await db.refresh(task)
-    # 새 태스크는 subtasks가 없으므로 직접 dict 반환
     return _task_to_dict(task, subtasks_loaded=[])
 
 
@@ -208,9 +75,6 @@ async def update_task(
         task.priority = data.priority
     if data.due_date is not None:
         task.due_date = datetime.fromisoformat(data.due_date) if data.due_date else None
-    if data.project_id is not None:
-        await _get_project_or_404(db, user_id, data.project_id)
-        task.project_id = data.project_id
 
     await db.commit()
 
@@ -235,13 +99,13 @@ async def reorder_tasks(db: AsyncSession, user_id: int, data: ReorderRequest) ->
     """태스크 순서 변경."""
     for item in data.items:
         result = await db.execute(
-            select(Task)
-            .where(Task.id == item["id"])
-            .options(selectinload(Task.project))
+            select(Task).where(Task.id == item["id"], Task.user_id == user_id)
         )
         task = result.scalar_one_or_none()
-        if task and task.project.user_id == user_id:
+        if task:
             task.position = item["position"]
+            if "status" in item:
+                task.status = item["status"]
     await db.commit()
 
 
@@ -321,26 +185,12 @@ async def toggle_subtask(db: AsyncSession, user_id: int, subtask_id: int) -> dic
 # ---------------------------------------------------------------------------
 
 
-async def _get_project_or_404(
-    db: AsyncSession, user_id: int, project_id: int
-) -> Project:
-    result = await db.execute(
-        select(Project).where(Project.id == project_id, Project.user_id == user_id)
-    )
-    project = result.scalar_one_or_none()
-    if not project:
-        raise HTTPException(status_code=404, detail="프로젝트를 찾을 수 없습니다")
-    return project
-
-
 async def _get_task_or_404(db: AsyncSession, user_id: int, task_id: int) -> Task:
     result = await db.execute(
-        select(Task)
-        .where(Task.id == task_id)
-        .options(selectinload(Task.project))
+        select(Task).where(Task.id == task_id, Task.user_id == user_id)
     )
     task = result.scalar_one_or_none()
-    if not task or task.project.user_id != user_id:
+    if not task:
         raise HTTPException(status_code=404, detail="태스크를 찾을 수 없습니다")
     return task
 
@@ -351,10 +201,10 @@ async def _get_subtask_or_404(
     result = await db.execute(
         select(Subtask)
         .where(Subtask.id == subtask_id)
-        .options(selectinload(Subtask.task).selectinload(Task.project))
+        .options(selectinload(Subtask.task))
     )
     subtask = result.scalar_one_or_none()
-    if not subtask or subtask.task.project.user_id != user_id:
+    if not subtask or subtask.task.user_id != user_id:
         raise HTTPException(status_code=404, detail="서브태스크를 찾을 수 없습니다")
     return subtask
 
@@ -364,7 +214,7 @@ def _task_to_dict(task: Task, subtasks_loaded: list | None = None) -> dict:
     completed = sum(1 for s in subtasks if s.is_completed)
     return {
         "id": task.id,
-        "project_id": task.project_id,
+        "user_id": task.user_id,
         "title": task.title,
         "description": task.description,
         "status": task.status,

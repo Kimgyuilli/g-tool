@@ -3,20 +3,7 @@ from __future__ import annotations
 from pydantic import BaseModel
 
 
-class ProjectCreate(BaseModel):
-    name: str
-    description: str | None = None
-    color: str | None = None
-
-
-class ProjectUpdate(BaseModel):
-    name: str | None = None
-    description: str | None = None
-    color: str | None = None
-
-
 class TaskCreate(BaseModel):
-    project_id: int
     title: str
     description: str | None = None
     status: str = "todo"
@@ -30,7 +17,6 @@ class TaskUpdate(BaseModel):
     status: str | None = None
     priority: str | None = None
     due_date: str | None = None
-    project_id: int | None = None  # 프로젝트 이동용
 
 
 class SubtaskCreate(BaseModel):

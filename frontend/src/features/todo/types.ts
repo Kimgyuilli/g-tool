@@ -1,20 +1,9 @@
-export interface Project {
-  id: number;
-  name: string;
-  description: string | null;
-  color: string | null;
-  position: number;
-  task_count: number;
-  created_at: string | null;
-  updated_at: string | null;
-}
-
 export interface Task {
   id: number;
-  project_id: number;
+  user_id: number;
   title: string;
   description: string | null;
-  status: "todo" | "in_progress" | "done";
+  status: "todo" | "in_progress" | "on_hold";
   priority: "low" | "medium" | "high" | "urgent";
   due_date: string | null;
   position: number;
@@ -34,14 +23,7 @@ export interface Subtask {
   updated_at: string | null;
 }
 
-export interface ProjectCreateRequest {
-  name: string;
-  description?: string;
-  color?: string;
-}
-
 export interface TaskCreateRequest {
-  project_id: number;
   title: string;
   description?: string;
   status?: string;
@@ -55,16 +37,11 @@ export interface TaskUpdateRequest {
   status?: string;
   priority?: string;
   due_date?: string | null;
-  project_id?: number;
 }
 
 export interface SubtaskCreateRequest {
   task_id: number;
   title: string;
-}
-
-export interface ProjectsResponse {
-  projects: Project[];
 }
 
 export interface TasksResponse {
@@ -74,3 +51,11 @@ export interface TasksResponse {
 export interface SubtasksResponse {
   subtasks: Subtask[];
 }
+
+export type TaskStatus = "todo" | "in_progress" | "on_hold";
+
+export const STATUS_LABELS: Record<TaskStatus, string> = {
+  todo: "할 일",
+  in_progress: "진행 중",
+  on_hold: "보류",
+};

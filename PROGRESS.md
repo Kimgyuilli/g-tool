@@ -2,6 +2,36 @@
 
 > v1 (Phase 0~5) 기록 아카이브: [PROGRESS_V1.md](./PROGRESS_V1.md)
 
+## 2026-03-05 — agent (Phase 12: Todo 칸반 보드 리팩토링)
+### 완료한 작업
+**백엔드**
+- `backend/app/todo/models.py`: Project 클래스 삭제, Task에 user_id(FK→users) 추가, status 값 `todo/in_progress/on_hold`, 인덱스 `(user_id, status, position)`
+- `backend/app/todo/schemas.py`: ProjectCreate/ProjectUpdate 삭제, TaskCreate/TaskUpdate에서 project_id 제거
+- `backend/app/todo/service.py`: Project 함수 5개 + _get_project_or_404 삭제, Task/Subtask에서 project join 제거 → user_id 직접 검증, reorder_tasks에 status 변경 지원
+- `backend/app/todo/router.py`: Project 엔드포인트 5개 삭제, `GET /projects/{id}/tasks` → `GET /tasks`
+
+**프론트엔드**
+- `frontend/src/features/todo/types.ts`: Project 타입 삭제, Task.status 타입 변경, STATUS_LABELS 추가
+- `frontend/src/features/todo/hooks/useTodo.ts`: Project 관련 state/함수 제거, loadTasks → GET /tasks 플랫 조회, reorderTasks 함수 추가
+- `frontend/src/features/todo/components/KanbanBoard.tsx`: @dnd-kit 기반 3열 칸반 보드 (todo/in_progress/on_hold), 드래그앤드롭 컬럼 이동, 퀵 추가 입력
+- `frontend/src/features/todo/components/KanbanCard.tsx`: useSortable 드래그 가능 카드, 인라인 확장 (설명 편집 + 서브태스크 관리)
+- `frontend/src/features/todo/TodoPage.tsx`: ProjectSidebar/TaskDetailView/ResizablePanelGroup 제거, KanbanBoard만 렌더링
+- 삭제: ProjectSidebar.tsx, TaskListView.tsx, TaskDetailView.tsx
+- @dnd-kit/core, @dnd-kit/sortable, @dnd-kit/utilities 설치
+
+**검증**
+- `uv run ruff check .` — All checks passed
+- `pnpm lint` — 통과
+- `pnpm build` — 빌드 성공
+
+### 다음 할 일
+- DB 파일 삭제 후 재시작 (tasks 테이블 스키마 변경)
+- 수동 테스트: 칸반 보드 드래그앤드롭, 태스크 생성/삭제, 서브태스크 관리
+
+### 이슈/참고
+- SQLite 컬럼 변경 불가 → 개발 DB 파일 삭제 후 재생성 필요
+- projects 테이블은 DB에 남아있어도 무해 (코드에서 참조하지 않음)
+
 ## 2026-03-04 — agent (Phase 11: TodoList 기능 추가)
 ### 완료한 작업
 **백엔드 (11-1)**
