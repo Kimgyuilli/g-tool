@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
+import logging
+
 from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,6 +13,8 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.exceptions import AccountNotConnectedException
 from app.mail.models import User
+
+logger = logging.getLogger(__name__)
 
 
 async def get_google_user(
@@ -26,11 +31,17 @@ async def get_google_user(
     credentials = build_credentials(user.google_oauth_token, user.google_refresh_token)
 
     if credentials.expired and credentials.refresh_token:
-        from google.auth.transport.requests import Request
+        try:
+            from google.auth.transport.requests import Request
 
-        credentials.refresh(Request())
-        user.google_oauth_token = credentials.token
-        await db.commit()
+            await asyncio.to_thread(credentials.refresh, Request())
+            user.google_oauth_token = credentials.token
+            await db.commit()
+        except Exception as exc:
+            logger.warning(f"Google 토큰 갱신 실패 (user={user.id}): {exc}")
+            raise AccountNotConnectedException(
+                "Google (토큰 만료 — 재로그인 필요)"
+            ) from exc
 
     return user, credentials
 

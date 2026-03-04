@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, Query
+import logging
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from googleapiclient.errors import HttpError
 
 from app.auth.dependencies import get_google_user
 from app.calendar.schemas import CreateEventRequest
@@ -12,6 +15,7 @@ from app.calendar.service import (
 )
 from app.mail.models import User
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/calendar", tags=["calendar"])
 
 
@@ -21,7 +25,11 @@ async def get_calendars(
 ):
     """사용자의 Google Calendar 목록 조회."""
     _user, credentials = user_credentials
-    calendars = await list_calendars(credentials)
+    try:
+        calendars = await list_calendars(credentials)
+    except HttpError as exc:
+        logger.warning(f"Google Calendar API 에러: {exc}")
+        raise HTTPException(status_code=exc.resp.status, detail=str(exc)) from exc
     return {"calendars": calendars}
 
 
@@ -35,9 +43,13 @@ async def get_events(
 ):
     """캘린더 이벤트 목록 조회."""
     _user, credentials = user_credentials
-    events = await list_events(
-        credentials, calendar_id, time_min, time_max, max_results
-    )
+    try:
+        events = await list_events(
+            credentials, calendar_id, time_min, time_max, max_results
+        )
+    except HttpError as exc:
+        logger.warning(f"Google Calendar API 에러: {exc}")
+        raise HTTPException(status_code=exc.resp.status, detail=str(exc)) from exc
     return {"events": events, "calendar_id": calendar_id}
 
 
@@ -49,7 +61,11 @@ async def get_event_detail(
 ):
     """단일 이벤트 상세 조회."""
     _user, credentials = user_credentials
-    event = await get_event(credentials, calendar_id, event_id)
+    try:
+        event = await get_event(credentials, calendar_id, event_id)
+    except HttpError as exc:
+        logger.warning(f"Google Calendar API 에러: {exc}")
+        raise HTTPException(status_code=exc.resp.status, detail=str(exc)) from exc
     return event
 
 
@@ -60,14 +76,18 @@ async def create_new_event(
 ):
     """Google Calendar에 새 이벤트 생성."""
     _user, credentials = user_credentials
-    event = await create_event(
-        credentials,
-        calendar_id=req.calendar_id,
-        summary=req.summary,
-        start=req.start,
-        end=req.end,
-        all_day=req.all_day,
-        description=req.description,
-        location=req.location,
-    )
+    try:
+        event = await create_event(
+            credentials,
+            calendar_id=req.calendar_id,
+            summary=req.summary,
+            start=req.start,
+            end=req.end,
+            all_day=req.all_day,
+            description=req.description,
+            location=req.location,
+        )
+    except HttpError as exc:
+        logger.warning(f"Google Calendar API 에러: {exc}")
+        raise HTTPException(status_code=exc.resp.status, detail=str(exc)) from exc
     return event
