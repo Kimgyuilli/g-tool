@@ -2,6 +2,29 @@
 
 > v1 (Phase 0~5) 기록 아카이브: [PROGRESS_V1.md](./PROGRESS_V1.md)
 
+## 2026-03-04 — agent (Phase 9-4: 캘린더 이벤트 생성 기능 완료)
+### 완료한 작업
+**백엔드**
+- `backend/app/services/google_auth.py`: OAuth 스코프 `calendar.readonly` → `calendar.events`로 변경, `OAUTHLIB_RELAX_TOKEN_SCOPE=1` 설정 (Google 스코프 순서 불일치 해결)
+- `backend/app/services/calendar_service.py`: `create_event()` 함수 추가 (종일/시간 이벤트 분기 처리)
+- `backend/app/routers/calendar.py`: `POST /events` 엔드포인트 + `CreateEventRequest` Pydantic 모델
+
+**프론트엔드**
+- `frontend/src/types/calendar.ts`: `CreateEventRequest` 타입 추가
+- `frontend/src/hooks/useCalendar.ts`: `createEvent` 함수 추가 (POST + 자동 새로고침)
+- `frontend/src/components/EventCreateModal.tsx`: 이벤트 생성 모달 (제목, 종일, 날짜/시간, 장소, 설명, 캘린더 선택)
+- `frontend/src/components/CalendarView.tsx`: 생성 모달 연동 + toast 알림
+
+**버그 수정**
+- Dialog `aria-describedby` 경고 해결 (sr-only DialogDescription 추가)
+- 날짜 클릭 시 모달에 해당 날짜가 기본값으로 설정되도록 수정 (useEffect로 open 시 상태 리셋)
+### 다음 할 일
+- 주간/일간 캘린더 뷰 (Phase 9-3 pending)
+- 이벤트 수정/삭제 기능 (추후)
+### 이슈/참고
+- `OAUTHLIB_RELAX_TOKEN_SCOPE=1`: Google OAuth `include_granted_scopes`로 인해 이전 스코프가 포함되어 순서/내용 불일치 발생 → 이 환경변수로 해결
+- 스코프 변경 후 기존 사용자 재인증 필요
+
 ## 2026-03-04 — frontend-dev (Google Calendar 이벤트 생성 기능)
 ### 완료한 작업
 - `frontend/src/types/calendar.ts`: CreateEventRequest 타입 추가

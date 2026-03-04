@@ -85,9 +85,9 @@
 
 | 태스크 | 담당 | 상태 | 의존 | 비고 |
 |--------|------|------|------|------|
-| OAuth 스코프에 calendar (쓰기) 추가 | backend-dev | pending | 9-3 이벤트 생성 기능 | google_auth.py SCOPES에 calendar 추가 |
-| Calendar Service에 create_event 추가 | backend-dev | pending | 스코프 추가 | calendar_service.py — create_event, update_event, delete_event |
-| POST /events API 구현 | backend-dev | pending | Calendar Service | routers/calendar.py — POST /events |
+| OAuth 스코프 calendar.events로 변경 | backend-dev | done | 9-3 이벤트 생성 기능 | calendar.readonly → calendar.events, OAUTHLIB_RELAX_TOKEN_SCOPE 설정 |
+| Calendar Service에 create_event 추가 | backend-dev | done | 스코프 변경 | calendar_service.py — create_event 구현 |
+| POST /events API 구현 | backend-dev | done | Calendar Service | routers/calendar.py — POST /events |
 
 ### 기술 결정 사항
 
