@@ -2,6 +2,43 @@
 
 > v1 (Phase 0~5) 기록 아카이브: [PROGRESS_V1.md](./PROGRESS_V1.md)
 
+## 2026-03-04 — agent (Phase 11: TodoList 기능 추가)
+### 완료한 작업
+**백엔드 (11-1)**
+- `backend/app/todo/__init__.py`: 패키지 초기화
+- `backend/app/todo/models.py`: Project, Task, Subtask SQLAlchemy 모델 (Mapped[] 스타일, 인덱스, CASCADE)
+- `backend/app/todo/schemas.py`: Pydantic 요청 모델 (Create, Update, Reorder)
+- `backend/app/todo/service.py`: async CRUD 비즈니스 로직 (소유권 검증, position 자동 계산)
+- `backend/app/todo/router.py`: `/api/todo` 라우터 (15개 엔드포인트)
+- `backend/app/main.py`: todo_router 등록
+
+**프론트엔드 (11-2)**
+- `frontend/src/features/todo/types.ts`: Project, Task, Subtask 인터페이스 + 요청/응답 타입
+- `frontend/src/features/todo/hooks/useTodo.ts`: 프로젝트/태스크 CRUD 훅
+- `frontend/src/features/todo/hooks/useSubtasks.ts`: 서브태스크 CRUD + 토글 훅
+- `frontend/src/features/todo/components/ProjectSidebar.tsx`: 프로젝트 목록, 색상 도트, 생성/삭제
+- `frontend/src/features/todo/components/TaskListView.tsx`: 퀵 추가, 체크박스, 우선순위 도트, 마감일
+- `frontend/src/features/todo/components/TaskDetailView.tsx`: 설명 편집, 서브태스크 목록, 상태/우선순위 토글
+- `frontend/src/features/todo/TodoPage.tsx`: 3-panel 레이아웃 (프로젝트 사이드바 | 태스크 목록 | 태스크 상세)
+- `frontend/src/components/ui/checkbox.tsx`: shadcn/ui Checkbox 컴포넌트 추가 (@radix-ui/react-checkbox)
+- `frontend/src/components/ui/textarea.tsx`: shadcn/ui Textarea 컴포넌트 추가
+- `frontend/src/app/page.tsx`: activePage 타입에 "todo" 추가, TodoPage 조건부 렌더링
+- `frontend/src/components/AppHeader.tsx`: 할일 탭 추가 (CheckSquare 아이콘)
+
+**검증**
+- `uv run ruff check .` — All checks passed
+- `pnpm lint` — 통과
+- `pnpm build` — 빌드 성공
+
+### 다음 할 일
+- PR 생성 후 main에 병합
+- Phase 11-3 (UI 폴리시): 드래그앤드롭 재정렬, 우선순위 선택기, 마감일 date-picker, 상태 필터 탭, 프로젝트 색상 선택기
+
+### 이슈/참고
+- shadcn/ui checkbox, textarea 컴포넌트가 없어서 직접 추가함
+- SQLite create_all()은 기존 테이블에 영향 없이 새 테이블만 생성
+- 기존 DB 재생성 불필요 (새 테이블 추가만)
+
 ## 2026-03-04 — agent (Phase 10: DDD 도메인 패키지 분리 완료)
 ### 완료한 작업
 **백엔드 — DDD 패키지 구조**

@@ -106,3 +106,28 @@
 | Phase B: Backend mail 도메인 + main.py 업데이트 | agent | done | Phase A | mail/, background_sync, shim 제거 |
 | Phase C: Frontend feature 폴더 구조 | agent | done | — | features/mail/, calendar/, auth/ |
 | 검증: lint + 테스트 + 빌드 | agent | done | Phase A,B,C | ruff, pytest 24/24, pnpm lint+build 통과 |
+
+## Phase 11: TodoList 기능 추가
+
+> 메일+캘린더+할일 통합 생산성 도구로 확장. 자체 DB에 저장하는 Project > Task > Subtask 3단계 구조.
+
+### 11-1. Backend — 모델 + CRUD API
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| Todo models.py (Project, Task, Subtask) | backend-dev | done | — | SQLAlchemy Mapped[] 스타일 |
+| Todo schemas.py | backend-dev | done | — | Pydantic 요청/응답 모델 |
+| Todo service.py | backend-dev | done | models | async CRUD + 소유권 검증 |
+| Todo router.py + main.py 등록 | backend-dev | done | service, schemas | /api/todo prefix |
+
+### 11-2. Frontend — 타입 + 훅 + 기본 UI
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| Todo types.ts | frontend-dev | done | — | Project, Task, Subtask 인터페이스 |
+| useTodo + useSubtasks 훅 | frontend-dev | done | types, 11-1 | apiFetch 패턴 |
+| ProjectSidebar 컴포넌트 | frontend-dev | done | types | 프로젝트 목록 + 생성 |
+| TaskListView 컴포넌트 | frontend-dev | done | types | 퀵 추가, 체크박스, 우선순위 |
+| TaskDetailView 컴포넌트 | frontend-dev | done | types, useSubtasks | 서브태스크 목록 |
+| TodoPage 통합 | frontend-dev | done | 위 전체 | 3-panel 레이아웃 |
+| page.tsx + AppHeader 연동 | frontend-dev | done | TodoPage | nav에 할일 탭 추가 |

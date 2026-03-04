@@ -15,6 +15,7 @@ import { NaverConnectModal } from "@/features/auth/components/NaverConnectModal"
 import { CategorySidebar } from "@/features/mail/components/CategorySidebar";
 import { MailListView } from "@/features/mail/components/MailListView";
 import { CalendarPage } from "@/features/calendar/CalendarPage";
+import { TodoPage } from "@/features/todo/TodoPage";
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -27,7 +28,7 @@ const LIMIT = 20;
 
 export default function Home() {
   const { userId, hydrated, userInfo, setUserInfo, categories, handleLogin, handleLogout } = useAuth();
-  const [activePage, setActivePage] = useState<"mail" | "calendar">("mail");
+  const [activePage, setActivePage] = useState<"mail" | "calendar" | "todo">("mail");
   const [sourceFilter, setSourceFilter] = useState<"all" | "gmail" | "naver">("all");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [showSenderRules, setShowSenderRules] = useState(false);
@@ -236,6 +237,10 @@ export default function Home() {
 
       {activePage === "calendar" && (
         <CalendarPage userId={userId} />
+      )}
+
+      {activePage === "todo" && (
+        <TodoPage userId={userId} />
       )}
     </div>
   );

@@ -18,12 +18,13 @@ import {
   Menu,
   Mail,
   Calendar,
+  CheckSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AppHeaderProps {
-  activePage: "mail" | "calendar";
-  onPageChange: (page: "mail" | "calendar") => void;
+  activePage: "mail" | "calendar" | "todo";
+  onPageChange: (page: "mail" | "calendar" | "todo") => void;
   userInfo: UserInfo | null;
   sourceFilter: "all" | "gmail" | "naver";
   syncing: boolean;
@@ -98,6 +99,14 @@ export function AppHeader({
         >
           <Calendar className="h-4 w-4" />
           <span className="hidden sm:inline">캘린더</span>
+        </Button>
+        <Button
+          variant={activePage === "todo" ? "secondary" : "ghost"}
+          size="sm"
+          onClick={() => onPageChange("todo")}
+        >
+          <CheckSquare className="h-4 w-4" />
+          <span className="hidden sm:inline">할일</span>
         </Button>
       </nav>
 

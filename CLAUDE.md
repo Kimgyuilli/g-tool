@@ -145,10 +145,15 @@ planner(계획) → researcher(조사) → backend-dev + frontend-dev(구현) �
 │   │   │   ├── models.py       # User, Mail, Label, Classification, SyncState
 │   │   │   ├── routers/        # gmail.py, naver.py, inbox.py, classify.py
 │   │   │   └── services/       # gmail.py, naver.py, classifier.py, feedback.py, helpers.py
-│   │   └── calendar/           # 캘린더 도메인
-│   │       ├── router.py       # /api/calendar 라우터
-│   │       ├── service.py      # Google Calendar API
-│   │       └── schemas.py      # CreateEventRequest
+│   │   ├── calendar/           # 캘린더 도메인
+│   │   │   ├── router.py       # /api/calendar 라우터
+│   │   │   ├── service.py      # Google Calendar API
+│   │   │   └── schemas.py      # CreateEventRequest
+│   │   └── todo/               # 할일 도메인
+│   │       ├── models.py       # Project, Task, Subtask
+│   │       ├── schemas.py      # Pydantic 요청 모델
+│   │       ├── service.py      # async CRUD + 소유권 검증
+│   │       └── router.py       # /api/todo 라우터
 │   ├── tests/                  # pytest 테스트
 │   ├── pyproject.toml
 │   └── .env                    # 시크릿 (git 미추적)
@@ -166,6 +171,11 @@ planner(계획) → researcher(조사) → backend-dev + frontend-dev(구현) �
 │   │   │   │   ├── components/ # CalendarMonthView, CalendarEventDetail 등
 │   │   │   │   ├── hooks/      # useCalendar
 │   │   │   │   └── types.ts    # CalendarEvent, CalendarInfo 등
+│   │   │   ├── todo/           # 할일 feature
+│   │   │   │   ├── TodoPage.tsx
+│   │   │   │   ├── components/ # ProjectSidebar, TaskListView, TaskDetailView
+│   │   │   │   ├── hooks/      # useTodo, useSubtasks
+│   │   │   │   └── types.ts    # Project, Task, Subtask
 │   │   │   └── auth/           # 인증 feature
 │   │   │       ├── components/ # LoginScreen, NaverConnectModal
 │   │   │       ├── hooks/      # useAuth, useNaverConnect
@@ -205,6 +215,7 @@ planner(계획) → researcher(조사) → backend-dev + frontend-dev(구현) �
 - [x] **Phase 8**: HTML 이메일 렌더링
 - [x] **Phase 9**: Google Calendar 통합
 - [x] **Phase 10**: DDD 도메인 패키지 분리
+- [x] **Phase 11**: TodoList 기능 (Project > Task > Subtask 3단계)
 
 ## 개발 컨벤션
 

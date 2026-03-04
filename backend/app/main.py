@@ -17,6 +17,7 @@ from app.mail.routers.classify import router as classify_router
 from app.mail.routers.gmail import router as gmail_router
 from app.mail.routers.inbox import router as inbox_router
 from app.mail.routers.naver import router as naver_router
+from app.todo.router import router as todo_router
 
 logger = logging.getLogger(__name__)
 
@@ -65,6 +66,7 @@ app.include_router(classify_router)
 app.include_router(gmail_router)
 app.include_router(inbox_router)
 app.include_router(naver_router)
+app.include_router(todo_router)
 
 
 @app.get("/health")
