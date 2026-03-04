@@ -60,3 +60,17 @@ export const STATUS_LABELS: Record<TaskStatus, string> = {
   on_hold: "보류",
   done: "완료",
 };
+
+export const STATUS_COLORS: Record<TaskStatus, string> = {
+  todo: "bg-blue-500",
+  in_progress: "bg-amber-500",
+  on_hold: "bg-gray-400",
+  done: "bg-green-500",
+};
+
+export const PRIORITY_OPTIONS = [
+  { value: "urgent", label: "긴급", color: "bg-red-500" },
+  { value: "high", label: "높음", color: "bg-orange-500" },
+  { value: "medium", label: "보통", color: "bg-yellow-500" },
+  { value: "low", label: "낮음", color: "bg-gray-400" },
+] as const;
