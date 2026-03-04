@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Trash2, Plus, Check } from "lucide-react";
+import { Trash2, Plus, Check, MoreHorizontal } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -15,22 +15,15 @@ import {
   ContextMenuSubTrigger,
   ContextMenuSeparator,
   ContextMenuTrigger,
-  ContextMenuLabel,
 } from "@/components/ui/context-menu";
 import type { Task, Subtask, TaskUpdateRequest } from "@/features/todo/types";
 import {
   STATUS_LABELS,
   STATUS_COLORS,
   PRIORITY_OPTIONS,
+  PRIORITY_MAP,
 } from "@/features/todo/types";
 import type { TaskStatus } from "@/features/todo/types";
-
-const PRIORITY_COLORS: Record<string, string> = {
-  urgent: "bg-red-500",
-  high: "bg-orange-500",
-  medium: "bg-yellow-500",
-  low: "bg-gray-400",
-};
 
 interface KanbanCardProps {
   task: Task;
@@ -58,6 +51,7 @@ export function KanbanCard({
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [descDraft, setDescDraft] = useState(task.description ?? "");
+  const triggerRef = useRef<HTMLDivElement>(null);
 
   const {
     attributes,
@@ -75,6 +69,7 @@ export function KanbanCard({
   };
 
   const isDone = task.status === "done";
+  const prio = PRIORITY_MAP[task.priority];
 
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
@@ -86,6 +81,19 @@ export function KanbanCard({
     e.stopPropagation();
     const newStatus = isDone ? "todo" : "done";
     onUpdateTask(task.id, { status: newStatus });
+  };
+
+  // ⋯ 버튼 클릭 → 프로그래매틱 우클릭으로 컨텍스트 메뉴 오픈
+  const handleMenuClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const rect = (e.target as HTMLElement).getBoundingClientRect();
+    triggerRef.current?.dispatchEvent(
+      new MouseEvent("contextmenu", {
+        bubbles: true,
+        clientX: rect.left,
+        clientY: rect.bottom,
+      })
+    );
   };
 
   const handleSubtaskSubmit = async (e: React.FormEvent) => {
@@ -109,7 +117,10 @@ export function KanbanCard({
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
-          ref={setNodeRef}
+          ref={(node) => {
+            setNodeRef(node);
+            (triggerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+          }}
           style={style}
           className={`bg-card border rounded-lg shadow-sm group cursor-pointer transition-colors hover:border-foreground/20 overflow-hidden ${
             isDone ? "opacity-60" : ""
@@ -139,9 +150,12 @@ export function KanbanCard({
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
+                {/* Priority badge P0~P3 */}
                 <span
-                  className={`shrink-0 w-2 h-2 rounded-full ${PRIORITY_COLORS[task.priority]}`}
-                />
+                  className={`shrink-0 text-[10px] font-bold leading-none px-1.5 py-0.5 rounded ${prio?.badgeCls ?? ""}`}
+                >
+                  {prio?.badge ?? "P2"}
+                </span>
                 <span
                   className={`text-sm font-medium truncate ${
                     isDone ? "line-through text-muted-foreground" : ""
@@ -169,16 +183,15 @@ export function KanbanCard({
               </div>
             </div>
 
+            {/* ⋯ menu hint button */}
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-50 hover:!opacity-100 shrink-0"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteTask(task.id);
-              }}
+              className="h-6 w-6 opacity-0 group-hover:opacity-60 hover:!opacity-100 shrink-0"
+              onClick={handleMenuClick}
+              title="메뉴 (우클릭)"
             >
-              <Trash2 className="h-3 w-3" />
+              <MoreHorizontal className="h-3.5 w-3.5" />
             </Button>
           </div>
 
@@ -271,7 +284,11 @@ export function KanbanCard({
       <ContextMenuContent className="w-48">
         <ContextMenuSub>
           <ContextMenuSubTrigger>
-            <span className={`w-2 h-2 rounded-full mr-2 ${PRIORITY_COLORS[task.priority]}`} />
+            <span
+              className={`text-[10px] font-bold px-1.5 py-0.5 rounded mr-2 ${prio?.badgeCls ?? ""}`}
+            >
+              {prio?.badge ?? "P2"}
+            </span>
             우선순위
           </ContextMenuSubTrigger>
           <ContextMenuSubContent>
@@ -280,7 +297,11 @@ export function KanbanCard({
                 key={opt.value}
                 onClick={() => onUpdateTask(task.id, { priority: opt.value })}
               >
-                <span className={`w-2 h-2 rounded-full mr-2 ${opt.color}`} />
+                <span
+                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded mr-2 ${opt.badgeCls}`}
+                >
+                  {opt.badge}
+                </span>
                 {opt.label}
                 {task.priority === opt.value && (
                   <Check className="ml-auto h-3 w-3" />
@@ -292,7 +313,9 @@ export function KanbanCard({
 
         <ContextMenuSub>
           <ContextMenuSubTrigger>
-            <span className={`w-2 h-2 rounded-full mr-2 ${STATUS_COLORS[task.status as TaskStatus]}`} />
+            <span
+              className={`w-2 h-2 rounded-full mr-2 ${STATUS_COLORS[task.status as TaskStatus]}`}
+            />
             상태 변경
           </ContextMenuSubTrigger>
           <ContextMenuSubContent>
@@ -301,7 +324,9 @@ export function KanbanCard({
                 key={s}
                 onClick={() => onUpdateTask(task.id, { status: s })}
               >
-                <span className={`w-2 h-2 rounded-full mr-2 ${STATUS_COLORS[s]}`} />
+                <span
+                  className={`w-2 h-2 rounded-full mr-2 ${STATUS_COLORS[s]}`}
+                />
                 {STATUS_LABELS[s]}
                 {task.status === s && (
                   <Check className="ml-auto h-3 w-3" />
@@ -310,12 +335,6 @@ export function KanbanCard({
             ))}
           </ContextMenuSubContent>
         </ContextMenuSub>
-
-        <ContextMenuSeparator />
-
-        <ContextMenuLabel>
-          {PRIORITY_OPTIONS.find((p) => p.value === task.priority)?.label ?? "보통"} 우선순위
-        </ContextMenuLabel>
 
         <ContextMenuSeparator />
 

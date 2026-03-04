@@ -68,9 +68,53 @@ export const STATUS_COLORS: Record<TaskStatus, string> = {
   done: "bg-green-500",
 };
 
-export const PRIORITY_OPTIONS = [
-  { value: "urgent", label: "긴급", color: "bg-red-500" },
-  { value: "high", label: "높음", color: "bg-orange-500" },
-  { value: "medium", label: "보통", color: "bg-yellow-500" },
-  { value: "low", label: "낮음", color: "bg-gray-400" },
-] as const;
+/** 컬럼 배경 틴트 */
+export const STATUS_BG: Record<TaskStatus, string> = {
+  todo: "bg-blue-500/5",
+  in_progress: "bg-amber-500/5",
+  on_hold: "bg-gray-500/5",
+  done: "bg-green-500/5",
+};
+
+export type TaskPriority = "urgent" | "high" | "medium" | "low";
+
+export const PRIORITY_OPTIONS: {
+  value: TaskPriority;
+  label: string;
+  badge: string;
+  color: string;
+  badgeCls: string;
+}[] = [
+  {
+    value: "urgent",
+    label: "긴급",
+    badge: "P0",
+    color: "bg-red-500",
+    badgeCls: "bg-red-500/15 text-red-600 dark:text-red-400",
+  },
+  {
+    value: "high",
+    label: "높음",
+    badge: "P1",
+    color: "bg-orange-500",
+    badgeCls: "bg-orange-500/15 text-orange-600 dark:text-orange-400",
+  },
+  {
+    value: "medium",
+    label: "보통",
+    badge: "P2",
+    color: "bg-yellow-500",
+    badgeCls: "bg-yellow-500/15 text-yellow-700 dark:text-yellow-400",
+  },
+  {
+    value: "low",
+    label: "낮음",
+    badge: "P3",
+    color: "bg-gray-400",
+    badgeCls: "bg-gray-400/15 text-gray-500 dark:text-gray-400",
+  },
+];
+
+export const PRIORITY_MAP = Object.fromEntries(
+  PRIORITY_OPTIONS.map((p) => [p.value, p])
+) as Record<TaskPriority, (typeof PRIORITY_OPTIONS)[number]>;

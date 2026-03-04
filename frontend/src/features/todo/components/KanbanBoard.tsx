@@ -26,7 +26,12 @@ import type {
   TaskStatus,
   TaskUpdateRequest,
 } from "@/features/todo/types";
-import { STATUS_LABELS, STATUS_COLORS } from "@/features/todo/types";
+import {
+  STATUS_LABELS,
+  STATUS_COLORS,
+  STATUS_BG,
+  PRIORITY_MAP,
+} from "@/features/todo/types";
 
 const COLUMNS: TaskStatus[] = ["todo", "in_progress", "on_hold", "done"];
 
@@ -214,7 +219,7 @@ export function KanbanBoard({
             return (
               <div
                 key={status}
-                className="flex-1 min-w-[280px] flex flex-col bg-muted/30 rounded-xl"
+                className={`flex-1 min-w-[280px] flex flex-col rounded-xl ${STATUS_BG[status]}`}
               >
                 {/* Column header */}
                 <div className="flex items-center justify-between px-3 py-2">
@@ -277,16 +282,12 @@ export function KanbanBoard({
             <div className="bg-card border rounded-lg shadow-lg p-3 opacity-90">
               <div className="flex items-center gap-2">
                 <span
-                  className={`w-2 h-2 rounded-full ${
-                    activeTask.priority === "urgent"
-                      ? "bg-red-500"
-                      : activeTask.priority === "high"
-                        ? "bg-orange-500"
-                        : activeTask.priority === "medium"
-                          ? "bg-yellow-500"
-                          : "bg-gray-400"
+                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                    PRIORITY_MAP[activeTask.priority]?.badgeCls ?? ""
                   }`}
-                />
+                >
+                  {PRIORITY_MAP[activeTask.priority]?.badge ?? "P2"}
+                </span>
                 <span className="text-sm font-medium">{activeTask.title}</span>
               </div>
             </div>
