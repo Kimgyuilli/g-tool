@@ -15,6 +15,7 @@ import {
 import {
   SortableContext,
   verticalListSortingStrategy,
+  arrayMove,
 } from "@dnd-kit/sortable";
 import { useDroppable } from "@dnd-kit/core";
 import { Plus } from "lucide-react";
@@ -25,7 +26,7 @@ import type {
   TaskStatus,
   TaskUpdateRequest,
 } from "@/features/todo/types";
-import { STATUS_LABELS } from "@/features/todo/types";
+import { STATUS_LABELS, STATUS_COLORS } from "@/features/todo/types";
 
 const COLUMNS: TaskStatus[] = ["todo", "in_progress", "on_hold", "done"];
 
@@ -146,12 +147,41 @@ export function KanbanBoard({
 
     if (!targetCol) return;
 
-    // Build reorder items for the target column
-    const colTasks = tasks
-      .filter((t) => (t.id === activeId ? true : t.status === targetCol))
-      .map((t) => (t.id === activeId ? { ...t, status: targetCol } : t));
+    // Get tasks in the target column (with the moved task already in it)
+    let colTasks = tasks.filter(
+      (t) => t.status === targetCol || t.id === activeId
+    );
+    // Deduplicate & ensure moved task has the right status
+    colTasks = colTasks
+      .map((t) => (t.id === activeId ? { ...t, status: targetCol } : t))
+      .filter(
+        (t, i, arr) => arr.findIndex((x) => x.id === t.id) === i
+      );
 
-    // Position: find where to insert
+    // Handle same-column reorder
+    if (typeof overId === "number" && overId !== activeId) {
+      const oldIndex = colTasks.findIndex((t) => t.id === activeId);
+      const newIndex = colTasks.findIndex((t) => t.id === overId);
+      if (oldIndex !== -1 && newIndex !== -1) {
+        colTasks = arrayMove(colTasks, oldIndex, newIndex);
+      }
+    }
+
+    // Optimistic UI update for ordering
+    setTasks((prev) => {
+      const others = prev.filter(
+        (t) => t.status !== targetCol && t.id !== activeId
+      );
+      return [
+        ...others,
+        ...colTasks.map((t, i) => ({
+          ...t,
+          status: targetCol,
+          position: i + 1,
+        })),
+      ];
+    });
+
     const items = colTasks.map((t, i) => ({
       id: t.id,
       position: i + 1,
@@ -189,6 +219,7 @@ export function KanbanBoard({
                 {/* Column header */}
                 <div className="flex items-center justify-between px-3 py-2">
                   <div className="flex items-center gap-2">
+                    <span className={`w-2.5 h-2.5 rounded-full ${STATUS_COLORS[status]}`} />
                     <h3 className="text-sm font-semibold">
                       {STATUS_LABELS[status]}
                     </h3>
