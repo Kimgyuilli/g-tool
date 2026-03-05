@@ -69,7 +69,7 @@ function DescriptionEditor({
 
   return (
     <p
-      className="text-xs text-muted-foreground cursor-pointer hover:text-foreground min-h-[1.5rem]"
+      className="text-xs text-muted-foreground cursor-pointer hover:text-foreground min-h-6"
       onClick={() => {
         setDraft(description ?? "");
         setIsEditing(true);
@@ -253,7 +253,7 @@ export function KanbanCard({ task }: KanbanCardProps) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 opacity-0 group-hover:opacity-60 hover:!opacity-100 shrink-0"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-60 hover:opacity-100! shrink-0"
                   onClick={(e) => e.stopPropagation()}
                   title="메뉴"
                 >
