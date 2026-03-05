@@ -49,6 +49,42 @@ export function EventCreateModal({
     }
   }, [open, defaultDate]);
 
+  // 시작 날짜 변경 시 종료 날짜가 시작보다 이전이면 자동 조정
+  const handleStartDateChange = (val: string) => {
+    setStartDate(val);
+    if (val > endDate) setEndDate(val);
+  };
+
+  // 시작 시간 변경 시 종료 시간 자동 조정 (같은 날이면 +1시간)
+  const handleStartTimeChange = (val: string) => {
+    setStartTime(val);
+    if (startDate === endDate && val >= endTime) {
+      const [h, m] = val.split(":").map(Number);
+      const newH = h + 1;
+      if (newH < 24) {
+        setEndTime(`${String(newH).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+      } else {
+        // 23시 이후면 종료 날짜를 다음날로
+        const next = new Date(startDate);
+        next.setDate(next.getDate() + 1);
+        setEndDate(next.toISOString().slice(0, 10));
+        setEndTime("00:00");
+      }
+    }
+  };
+
+  // 종료 날짜는 시작 날짜 이전으로 설정 불가
+  const handleEndDateChange = (val: string) => {
+    if (val < startDate) return;
+    setEndDate(val);
+  };
+
+  // 종료 시간은 같은 날이면 시작 시간 이전 불가
+  const handleEndTimeChange = (val: string) => {
+    if (startDate === endDate && val <= startTime) return;
+    setEndTime(val);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!summary.trim()) return;
@@ -129,14 +165,14 @@ export function EventCreateModal({
               <input
                 type="date"
                 value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
+                onChange={(e) => handleStartDateChange(e.target.value)}
                 className="w-full rounded border border-border bg-background px-2 py-1.5 text-sm"
               />
               {!allDay && (
                 <input
                   type="time"
                   value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
+                  onChange={(e) => handleStartTimeChange(e.target.value)}
                   className="mt-1 w-full rounded border border-border bg-background px-2 py-1.5 text-sm"
                 />
               )}
@@ -146,14 +182,16 @@ export function EventCreateModal({
               <input
                 type="date"
                 value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
+                min={startDate}
+                onChange={(e) => handleEndDateChange(e.target.value)}
                 className="w-full rounded border border-border bg-background px-2 py-1.5 text-sm"
               />
               {!allDay && (
                 <input
                   type="time"
                   value={endTime}
-                  onChange={(e) => setEndTime(e.target.value)}
+                  min={startDate === endDate ? startTime : undefined}
+                  onChange={(e) => handleEndTimeChange(e.target.value)}
                   className="mt-1 w-full rounded border border-border bg-background px-2 py-1.5 text-sm"
                 />
               )}
