@@ -2,6 +2,25 @@
 
 > v1 (Phase 0~5) 기록 아카이브: [PROGRESS_V1.md](./PROGRESS_V1.md)
 
+## 2026-03-05 — agent (Phase 16: 캘린더 일정 삭제 기능 추가)
+### 완료한 작업
+- `backend/app/calendar/service.py`: `delete_event` 함수 추가 (기존 `_build_calendar` + `asyncio.to_thread` 패턴)
+- `backend/app/calendar/router.py`: `DELETE /api/calendar/events/{event_id}?calendar_id=...` 엔드포인트 추가, `delete_event` import
+- `frontend/src/features/calendar/hooks/useCalendar.ts`: `deleteEvent` 함수 추가 (DELETE 호출 + loadEvents 갱신), return에 포함
+- `frontend/src/features/calendar/components/CalendarEventDetail.tsx`: `onDelete` prop 추가, 헤더에 Trash2 삭제 버튼 배치 (deleting 시 Loader2 spinner + disabled)
+- `frontend/src/features/calendar/CalendarPage.tsx`: `deleteEvent` destructure, `handleDeleteEvent` 핸들러 (삭제 → toast → selectedEvent null), `onDelete` prop 전달
+
+### 검증
+- `uv run ruff check .` — All checks passed
+- ESLint — 통과
+- `next build` — 빌드 성공
+
+### 다음 할 일
+- 커밋 + PR 생성
+
+### 이슈/참고
+- 없음
+
 ## 2026-03-05 — agent (Phase 15: 캘린더 동기화 버튼 추가)
 ### 완료한 작업
 - `frontend/src/features/calendar/components/CalendarSidebar.tsx`: `onRefresh`, `refreshing` props 추가, "오늘" 버튼 옆에 RefreshCw 동기화 버튼 배치, refreshing 시 animate-spin + disabled

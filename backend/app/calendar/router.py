@@ -9,6 +9,7 @@ from app.auth.dependencies import get_google_user
 from app.calendar.schemas import CreateEventRequest
 from app.calendar.service import (
     create_event,
+    delete_event,
     get_event,
     list_calendars,
     list_events,
@@ -91,3 +92,19 @@ async def create_new_event(
         logger.warning(f"Google Calendar API 에러: {exc}")
         raise HTTPException(status_code=exc.resp.status, detail=str(exc)) from exc
     return event
+
+
+@router.delete("/events/{event_id}")
+async def delete_existing_event(
+    event_id: str,
+    calendar_id: str = Query(default="primary"),
+    user_credentials: tuple[User, object] = Depends(get_google_user),
+):
+    """Google Calendar에서 이벤트 삭제."""
+    _user, credentials = user_credentials
+    try:
+        await delete_event(credentials, calendar_id, event_id)
+    except HttpError as exc:
+        logger.warning(f"Google Calendar API 에러: {exc}")
+        raise HTTPException(status_code=exc.resp.status, detail=str(exc)) from exc
+    return {"ok": True}

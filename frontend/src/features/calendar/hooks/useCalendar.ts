@@ -117,6 +117,14 @@ export function useCalendar({ userId }: UseCalendarOptions) {
     return event;
   }, [userId, loadEvents]);
 
+  const deleteEvent = useCallback(async (eventId: string, calendarId: string) => {
+    if (!userId) return;
+    await apiFetch(`/api/calendar/events/${encodeURIComponent(eventId)}?user_id=${userId}&calendar_id=${encodeURIComponent(calendarId)}`, {
+      method: "DELETE",
+    });
+    await loadEvents();
+  }, [userId, loadEvents]);
+
   return {
     calendars,
     events: filteredEvents,
@@ -132,5 +140,6 @@ export function useCalendar({ userId }: UseCalendarOptions) {
     goToNextMonth,
     goToToday,
     createEvent,
+    deleteEvent,
   };
 }

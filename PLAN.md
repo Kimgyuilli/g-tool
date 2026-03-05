@@ -213,3 +213,13 @@
 |--------|------|------|------|------|
 | CalendarSidebar에 RefreshCw 버튼 추가 | frontend-dev | done | — | onRefresh, refreshing props |
 | CalendarPage에 handleRefresh 로직 추가 | frontend-dev | done | — | loadCalendars + loadEvents + toast |
+
+## Phase 16: 캘린더 일정 삭제 기능 추가
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| Backend: delete_event 서비스 함수 | backend-dev | done | — | service.py |
+| Backend: DELETE /events/{event_id} 엔드포인트 | backend-dev | done | — | router.py |
+| Frontend: useCalendar deleteEvent 함수 | frontend-dev | done | — | useCalendar.ts |
+| Frontend: CalendarEventDetail 삭제 버튼 | frontend-dev | done | — | CalendarEventDetail.tsx |
+| Frontend: CalendarPage deleteEvent 연동 | frontend-dev | done | — | CalendarPage.tsx |

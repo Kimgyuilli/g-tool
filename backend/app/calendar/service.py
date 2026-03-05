@@ -117,6 +117,20 @@ async def create_event(
     return _parse_event(raw, calendar_id)
 
 
+async def delete_event(
+    credentials: Credentials,
+    calendar_id: str,
+    event_id: str,
+) -> None:
+    """Google Calendar에서 이벤트 삭제."""
+    service = _build_calendar(credentials)
+
+    def _delete():
+        service.events().delete(calendarId=calendar_id, eventId=event_id).execute()
+
+    await asyncio.to_thread(_delete)
+
+
 def _parse_event(raw: dict, calendar_id: str) -> dict[str, Any]:
     """Google Calendar 이벤트 응답을 파싱."""
     start = raw.get("start", {})

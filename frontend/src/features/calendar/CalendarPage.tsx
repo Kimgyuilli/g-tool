@@ -35,6 +35,7 @@ export function CalendarPage({ userId }: CalendarPageProps) {
     goToNextMonth,
     goToToday,
     createEvent,
+    deleteEvent,
   } = useCalendar({ userId });
 
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -58,6 +59,16 @@ export function CalendarPage({ userId }: CalendarPageProps) {
   const handleSelectDate = (date: Date) => {
     setCreateDefaultDate(date);
     setShowCreateModal(true);
+  };
+
+  const handleDeleteEvent = async (eventId: string, calendarId: string) => {
+    try {
+      await deleteEvent(eventId, calendarId);
+      setSelectedEvent(null);
+      toast.success("일정이 삭제되었습니다");
+    } catch {
+      toast.error("일정 삭제에 실패했습니다");
+    }
   };
 
   const handleCreateEvent = async (req: CreateEventRequest) => {
@@ -128,6 +139,7 @@ export function CalendarPage({ userId }: CalendarPageProps) {
               <CalendarEventDetail
                 event={selectedEvent}
                 onClose={() => setSelectedEvent(null)}
+                onDelete={handleDeleteEvent}
               />
             </ResizablePanel>
           </>

@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { CalendarEvent } from "@/features/calendar/types";
 import { Button } from "@/components/ui/button";
-import { X, MapPin, Clock, Users, ExternalLink } from "lucide-react";
+import { X, MapPin, Clock, Users, ExternalLink, Trash2, Loader2 } from "lucide-react";
 
 interface CalendarEventDetailProps {
   event: CalendarEvent;
   onClose: () => void;
+  onDelete: (eventId: string, calendarId: string) => Promise<void>;
 }
 
 function formatEventTime(event: CalendarEvent): string {
@@ -27,7 +29,18 @@ function formatEventTime(event: CalendarEvent): string {
   return `${dateStr} ${startTime} ~ ${endTime}`;
 }
 
-export function CalendarEventDetail({ event, onClose }: CalendarEventDetailProps) {
+export function CalendarEventDetail({ event, onClose, onDelete }: CalendarEventDetailProps) {
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      await onDelete(event.id, event.calendar_id);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col overflow-auto">
       {/* Header */}
@@ -38,9 +51,20 @@ export function CalendarEventDetail({ event, onClose }: CalendarEventDetailProps
             <span className="text-xs text-red-500 font-medium">취소됨</span>
           )}
         </div>
-        <Button variant="ghost" size="icon" onClick={onClose} className="shrink-0">
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1 shrink-0">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleDelete}
+            disabled={deleting}
+            className="text-muted-foreground hover:text-destructive"
+          >
+            {deleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+          </Button>
+          <Button variant="ghost" size="icon" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Content */}
