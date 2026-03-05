@@ -2,6 +2,42 @@
 
 > v1 (Phase 0~5) 기록 아카이브: [PROGRESS_V1.md](./PROGRESS_V1.md)
 
+## 2026-03-05 — agent (Phase 13: Todo 코드 최적화 및 개선)
+### 완료한 작업
+**백엔드 (6가지 개선)**
+- `schemas.py`: status/priority를 `Literal` 타입으로 제한 (잘못된 값 DB 저장 방지)
+- `schemas.py`: `ReorderRequest.items`를 `list[dict]` → `list[ReorderItem]` 타입 안전화
+- `schemas.py`: `due_date` 파싱을 `field_validator`로 schema 레벨로 이동
+- `schemas.py`: `TaskResponse`, `SubtaskResponse` Pydantic response model 추가
+- `service.py`: `reorder_tasks` N+1 쿼리 → `Task.id.in_(ids)` 일괄 조회로 개선
+- `service.py`: `update_task` subtask 이중 로드 제거 (`_get_task_or_404`에 `load_subtasks` 파라미터 추가)
+- `service.py`: `_task_to_dict`/`_subtask_to_dict` → `_task_to_response`/`_subtask_to_response` (Pydantic 모델 반환)
+- `service.py`: `func.max()` 대신 `order_by().limit(1)` 패턴으로 position 조회
+
+**프론트엔드 (6가지 개선)**
+- `useTodo.ts`: CUD 낙관적 업데이트 (createTask → 로컬 추가, updateTask → 로컬 교체, deleteTask → 로컬 제거 후 서버 호출)
+- `useTodo.ts`/`useSubtasks.ts`: 에러 시 `setTasks([])`/`setSubtasks([])` 제거 → 기존 데이터 보존
+- `useSubtasks.ts`: toggleSubtask 낙관적 업데이트 (즉시 UI 반영 → 서버 응답으로 확정)
+- `KanbanBoard.tsx`: handleDragEnd 로직 단순화 (이중 필터링/중복 제거 제거)
+- `KanbanCard.tsx`: descDraft 동기화 → `DescriptionEditor` 별도 컴포넌트 분리 + key 패턴
+- `KanbanCard.tsx`: `dispatchEvent(contextmenu)` → `DropdownMenu` 컴포넌트로 안정적 교체 (⋯ 클릭 → DropdownMenu, 우클릭 → ContextMenu)
+- `TodoContext.tsx` 신규: prop drilling 해소 (TodoPage → KanbanBoard → KanbanCard 간 11개 prop → Context)
+- `TodoPage.tsx`: 핸들러 함수들 Context로 이동, 코드 95줄 → 15줄로 축소
+- `dropdown-menu.tsx`: `DropdownMenuSub`, `DropdownMenuSubTrigger`, `DropdownMenuSubContent` 추가
+
+**검증**
+- `uv run ruff check .` — All checks passed
+- `pnpm lint` — 통과
+- `pnpm build` — 빌드 성공
+
+### 다음 할 일
+- 커밋 + PR 업데이트
+- 수동 테스트: 낙관적 업데이트 동작, 드래그앤드롭, 컨텍스트 메뉴/드롭다운 메뉴
+
+### 이슈/참고
+- ESLint `react-hooks/set-state-in-effect` 룰로 useEffect 내 setState 불가 → DescriptionEditor 분리 + key 패턴으로 해결
+- ESLint `react-hooks/refs` 룰로 render 중 ref 업데이트 불가 → 동일 방법으로 우회
+
 ## 2026-03-05 — agent (Phase 12: Todo 칸반 보드 리팩토링)
 ### 완료한 작업
 **백엔드**

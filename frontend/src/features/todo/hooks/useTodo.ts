@@ -25,7 +25,7 @@ export function useTodo({ userId, enabled = true }: UseTodoOptions) {
       );
       setTasks(data.tasks);
     } catch {
-      setTasks([]);
+      // 에러 시 기존 데이터 보존
     } finally {
       setLoading(false);
     }
@@ -44,34 +44,36 @@ export function useTodo({ userId, enabled = true }: UseTodoOptions) {
         `/api/todo/tasks?user_id=${userId}`,
         { method: "POST", body: JSON.stringify(data) }
       );
-      await loadTasks();
+      setTasks((prev) => [...prev, task]);
       return task;
     },
-    [userId, loadTasks]
+    [userId]
   );
 
   const updateTask = useCallback(
     async (taskId: number, data: TaskUpdateRequest) => {
       if (!userId) return null;
-      const task = await apiFetch<Task>(
+      const updated = await apiFetch<Task>(
         `/api/todo/tasks/${taskId}?user_id=${userId}`,
         { method: "PATCH", body: JSON.stringify(data) }
       );
-      await loadTasks();
-      return task;
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? updated : t))
+      );
+      return updated;
     },
-    [userId, loadTasks]
+    [userId]
   );
 
   const deleteTask = useCallback(
     async (taskId: number) => {
       if (!userId) return;
+      setTasks((prev) => prev.filter((t) => t.id !== taskId));
       await apiFetch(`/api/todo/tasks/${taskId}?user_id=${userId}`, {
         method: "DELETE",
       });
-      await loadTasks();
     },
-    [userId, loadTasks]
+    [userId]
   );
 
   const reorderTasks = useCallback(

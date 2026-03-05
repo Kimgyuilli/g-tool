@@ -156,3 +156,29 @@
 | TodoPage 리팩토링 | frontend-dev | done | — | KanbanBoard만 렌더링 |
 | 구 컴포넌트 삭제 | frontend-dev | done | — | ProjectSidebar, TaskListView, TaskDetailView |
 | 검증: ruff + lint + build | agent | done | — | 모두 통과 |
+
+## Phase 13: Todo 코드 최적화 및 개선
+
+> 백엔드/프론트엔드 코드 품질, 타입 안전성, 성능, UX 개선
+
+### 13-1. Backend — 타입 안전성 + 성능
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| schemas.py: status/priority Literal 검증 | backend-dev | done | — | str → Literal 제한 |
+| schemas.py: ReorderRequest 타입 안전화 | backend-dev | done | — | list[dict] → list[ReorderItem] |
+| service.py: reorder N+1 쿼리 개선 | backend-dev | done | — | 일괄 조회 후 업데이트 |
+| service.py: update_task subtask 이중 로드 제거 | backend-dev | done | — | 최초 조회에 selectinload 포함 |
+| service.py: Pydantic response model 도입 | backend-dev | done | — | _to_dict → Pydantic 모델 |
+| schemas.py: due_date 파싱 schema 레벨로 이동 | backend-dev | done | — | validator로 datetime 변환 |
+
+### 13-2. Frontend — 낙관적 업데이트 + UX
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| useTodo: CUD 낙관적 업데이트 | frontend-dev | done | — | re-fetch 제거, 로컬 상태 업데이트 |
+| useTodo: 에러 시 데이터 보존 | frontend-dev | done | — | setTasks([]) → 기존 유지 |
+| KanbanBoard: handleDragEnd 로직 단순화 | frontend-dev | done | — | 이중 처리 제거 |
+| KanbanCard: descDraft 동기화 | frontend-dev | done | — | useEffect 또는 key 활용 |
+| TodoPage: prop drilling 개선 | frontend-dev | done | — | Context 도입 |
+| KanbanCard: 컨텍스트 메뉴 open 제어 | frontend-dev | done | — | dispatchEvent → Radix open/onOpenChange |

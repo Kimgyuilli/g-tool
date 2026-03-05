@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Trash2, Plus, Check, MoreHorizontal } from "lucide-react";
@@ -16,42 +16,90 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import type { Task, Subtask, TaskUpdateRequest } from "@/features/todo/types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import type { Task, TaskStatus } from "@/features/todo/types";
 import {
   STATUS_LABELS,
   STATUS_COLORS,
   PRIORITY_OPTIONS,
   PRIORITY_MAP,
 } from "@/features/todo/types";
-import type { TaskStatus } from "@/features/todo/types";
+import { useTodoContext } from "@/features/todo/TodoContext";
+
+function DescriptionEditor({
+  description,
+  onSave,
+}: {
+  description: string | null;
+  onSave: (value: string) => void;
+}) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [draft, setDraft] = useState(description ?? "");
+
+  if (isEditing) {
+    return (
+      <textarea
+        className="w-full text-xs border rounded p-2 bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring"
+        rows={3}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={() => {
+          setIsEditing(false);
+          if (draft !== (description ?? "")) onSave(draft);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            setDraft(description ?? "");
+            setIsEditing(false);
+          }
+        }}
+        autoFocus
+      />
+    );
+  }
+
+  return (
+    <p
+      className="text-xs text-muted-foreground cursor-pointer hover:text-foreground min-h-[1.5rem]"
+      onClick={() => {
+        setDraft(description ?? "");
+        setIsEditing(true);
+      }}
+    >
+      {description || "설명 추가..."}
+    </p>
+  );
+}
 
 interface KanbanCardProps {
   task: Task;
-  isExpanded: boolean;
-  subtasks: Subtask[];
-  onToggleExpand: () => void;
-  onUpdateTask: (taskId: number, data: TaskUpdateRequest) => Promise<unknown>;
-  onDeleteTask: (taskId: number) => Promise<void>;
-  onCreateSubtask: (title: string) => Promise<void>;
-  onToggleSubtask: (subtaskId: number) => Promise<unknown>;
-  onDeleteSubtask: (subtaskId: number) => Promise<void>;
 }
 
-export function KanbanCard({
-  task,
-  isExpanded,
-  subtasks,
-  onToggleExpand,
-  onUpdateTask,
-  onDeleteTask,
-  onCreateSubtask,
-  onToggleSubtask,
-  onDeleteSubtask,
-}: KanbanCardProps) {
+export function KanbanCard({ task }: KanbanCardProps) {
+  const {
+    expandedTaskId,
+    subtasks,
+    onToggleExpand,
+    onUpdateTask,
+    onDeleteTask,
+    onCreateSubtask,
+    onToggleSubtask,
+    onDeleteSubtask,
+  } = useTodoContext();
+
+  const isExpanded = expandedTaskId === task.id;
+  const cardSubtasks = isExpanded ? subtasks : [];
+
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("");
-  const [isEditingDesc, setIsEditingDesc] = useState(false);
-  const [descDraft, setDescDraft] = useState(task.description ?? "");
-  const triggerRef = useRef<HTMLDivElement>(null);
 
   const {
     attributes,
@@ -73,8 +121,8 @@ export function KanbanCard({
 
   const handleCardClick = (e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
-    if (target.closest("button, input, textarea, [role='checkbox']")) return;
-    onToggleExpand();
+    if (target.closest("button, input, textarea, [role='checkbox'], [role='menuitem']")) return;
+    onToggleExpand(task.id);
   };
 
   const handleToggleDone = (e: React.MouseEvent) => {
@@ -83,17 +131,8 @@ export function KanbanCard({
     onUpdateTask(task.id, { status: newStatus });
   };
 
-  // ⋯ 버튼 클릭 → 프로그래매틱 우클릭으로 컨텍스트 메뉴 오픈
-  const handleMenuClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    triggerRef.current?.dispatchEvent(
-      new MouseEvent("contextmenu", {
-        bubbles: true,
-        clientX: rect.left,
-        clientY: rect.bottom,
-      })
-    );
+  const handleDescSave = async (value: string) => {
+    await onUpdateTask(task.id, { description: value });
   };
 
   const handleSubtaskSubmit = async (e: React.FormEvent) => {
@@ -104,23 +143,48 @@ export function KanbanCard({
     await onCreateSubtask(title);
   };
 
-  const handleDescSave = async () => {
-    setIsEditingDesc(false);
-    if (descDraft !== (task.description ?? "")) {
-      await onUpdateTask(task.id, { description: descDraft });
-    }
-  };
-
   const statusKeys = Object.keys(STATUS_LABELS) as TaskStatus[];
+
+  // 공유 메뉴 아이템 렌더 (ContextMenu와 DropdownMenu에서 재사용)
+  const renderPriorityItems = (ItemComponent: React.ElementType) =>
+    PRIORITY_OPTIONS.map((opt) => (
+      <ItemComponent
+        key={opt.value}
+        onClick={() => onUpdateTask(task.id, { priority: opt.value })}
+      >
+        <span
+          className={`text-[10px] font-bold px-1.5 py-0.5 rounded mr-2 ${opt.badgeCls}`}
+        >
+          {opt.badge}
+        </span>
+        {opt.label}
+        {task.priority === opt.value && (
+          <Check className="ml-auto h-3 w-3" />
+        )}
+      </ItemComponent>
+    ));
+
+  const renderStatusItems = (ItemComponent: React.ElementType) =>
+    statusKeys.map((s) => (
+      <ItemComponent
+        key={s}
+        onClick={() => onUpdateTask(task.id, { status: s })}
+      >
+        <span
+          className={`w-2 h-2 rounded-full mr-2 ${STATUS_COLORS[s]}`}
+        />
+        {STATUS_LABELS[s]}
+        {task.status === s && (
+          <Check className="ml-auto h-3 w-3" />
+        )}
+      </ItemComponent>
+    ));
 
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <div
-          ref={(node) => {
-            setNodeRef(node);
-            (triggerRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
-          }}
+          ref={setNodeRef}
           style={style}
           className={`bg-card border rounded-lg shadow-sm group cursor-pointer transition-colors hover:border-foreground/20 overflow-hidden ${
             isDone ? "opacity-60" : ""
@@ -183,16 +247,57 @@ export function KanbanCard({
               </div>
             </div>
 
-            {/* ⋯ menu hint button */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-60 hover:!opacity-100 shrink-0"
-              onClick={handleMenuClick}
-              title="메뉴 (우클릭)"
-            >
-              <MoreHorizontal className="h-3.5 w-3.5" />
-            </Button>
+            {/* ⋯ dropdown menu button */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-60 hover:!opacity-100 shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                  title="메뉴"
+                >
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-48">
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <span
+                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded mr-2 ${prio?.badgeCls ?? ""}`}
+                    >
+                      {prio?.badge ?? "P2"}
+                    </span>
+                    우선순위
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {renderPriorityItems(DropdownMenuItem)}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <span
+                      className={`w-2 h-2 rounded-full mr-2 ${STATUS_COLORS[task.status as TaskStatus]}`}
+                    />
+                    상태 변경
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    {renderStatusItems(DropdownMenuItem)}
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onClick={() => onDeleteTask(task.id)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  삭제
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           {/* Expanded section */}
@@ -201,39 +306,16 @@ export function KanbanCard({
               className="border-t px-3 pb-3 pt-2 space-y-3"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Description */}
-              <div>
-                {isEditingDesc ? (
-                  <textarea
-                    className="w-full text-xs border rounded p-2 bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring"
-                    rows={3}
-                    value={descDraft}
-                    onChange={(e) => setDescDraft(e.target.value)}
-                    onBlur={handleDescSave}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") {
-                        setDescDraft(task.description ?? "");
-                        setIsEditingDesc(false);
-                      }
-                    }}
-                    autoFocus
-                  />
-                ) : (
-                  <p
-                    className="text-xs text-muted-foreground cursor-pointer hover:text-foreground min-h-[1.5rem]"
-                    onClick={() => {
-                      setDescDraft(task.description ?? "");
-                      setIsEditingDesc(true);
-                    }}
-                  >
-                    {task.description || "설명 추가..."}
-                  </p>
-                )}
-              </div>
+              {/* Description — key로 외부 변경 시 리마운트 */}
+              <DescriptionEditor
+                key={task.description ?? "__empty__"}
+                description={task.description}
+                onSave={handleDescSave}
+              />
 
               {/* Subtasks */}
               <div className="space-y-1">
-                {subtasks.map((st) => (
+                {cardSubtasks.map((st) => (
                   <div key={st.id} className="flex items-center gap-2 group/st">
                     <Checkbox
                       checked={st.is_completed}
@@ -292,22 +374,7 @@ export function KanbanCard({
             우선순위
           </ContextMenuSubTrigger>
           <ContextMenuSubContent>
-            {PRIORITY_OPTIONS.map((opt) => (
-              <ContextMenuItem
-                key={opt.value}
-                onClick={() => onUpdateTask(task.id, { priority: opt.value })}
-              >
-                <span
-                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded mr-2 ${opt.badgeCls}`}
-                >
-                  {opt.badge}
-                </span>
-                {opt.label}
-                {task.priority === opt.value && (
-                  <Check className="ml-auto h-3 w-3" />
-                )}
-              </ContextMenuItem>
-            ))}
+            {renderPriorityItems(ContextMenuItem)}
           </ContextMenuSubContent>
         </ContextMenuSub>
 
@@ -319,20 +386,7 @@ export function KanbanCard({
             상태 변경
           </ContextMenuSubTrigger>
           <ContextMenuSubContent>
-            {statusKeys.map((s) => (
-              <ContextMenuItem
-                key={s}
-                onClick={() => onUpdateTask(task.id, { status: s })}
-              >
-                <span
-                  className={`w-2 h-2 rounded-full mr-2 ${STATUS_COLORS[s]}`}
-                />
-                {STATUS_LABELS[s]}
-                {task.status === s && (
-                  <Check className="ml-auto h-3 w-3" />
-                )}
-              </ContextMenuItem>
-            ))}
+            {renderStatusItems(ContextMenuItem)}
           </ContextMenuSubContent>
         </ContextMenuSub>
 

@@ -20,35 +20,16 @@ import {
 import { useDroppable } from "@dnd-kit/core";
 import { Plus } from "lucide-react";
 import { KanbanCard } from "./KanbanCard";
-import type {
-  Task,
-  Subtask,
-  TaskStatus,
-  TaskUpdateRequest,
-} from "@/features/todo/types";
+import type { Task, TaskStatus } from "@/features/todo/types";
 import {
   STATUS_LABELS,
   STATUS_COLORS,
   STATUS_BG,
   PRIORITY_MAP,
 } from "@/features/todo/types";
+import { useTodoContext } from "@/features/todo/TodoContext";
 
 const COLUMNS: TaskStatus[] = ["todo", "in_progress", "on_hold", "done"];
-
-interface KanbanBoardProps {
-  tasks: Task[];
-  setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
-  expandedTaskId: number | null;
-  subtasks: Subtask[];
-  onToggleExpand: (taskId: number) => void;
-  onCreateTask: (title: string) => Promise<void>;
-  onUpdateTask: (taskId: number, data: TaskUpdateRequest) => Promise<unknown>;
-  onDeleteTask: (taskId: number) => Promise<void>;
-  onReorderTasks: (items: { id: number; position: number; status?: string }[]) => Promise<void>;
-  onCreateSubtask: (title: string) => Promise<void>;
-  onToggleSubtask: (subtaskId: number) => Promise<unknown>;
-  onDeleteSubtask: (subtaskId: number) => Promise<void>;
-}
 
 function DroppableColumn({
   status,
@@ -71,20 +52,14 @@ function DroppableColumn({
   );
 }
 
-export function KanbanBoard({
-  tasks,
-  setTasks,
-  expandedTaskId,
-  subtasks,
-  onToggleExpand,
-  onCreateTask,
-  onUpdateTask,
-  onDeleteTask,
-  onReorderTasks,
-  onCreateSubtask,
-  onToggleSubtask,
-  onDeleteSubtask,
-}: KanbanBoardProps) {
+export function KanbanBoard() {
+  const {
+    tasks,
+    setTasks,
+    onCreateTask,
+    onReorderTasks,
+  } = useTodoContext();
+
   const [quickAddValue, setQuickAddValue] = useState("");
   const [activeTask, setActiveTask] = useState<Task | null>(null);
 
@@ -107,11 +82,9 @@ export function KanbanBoard({
   }, [tasks]);
 
   const findColumn = (id: string | number): TaskStatus | null => {
-    // Check if it's a column id
     for (const col of COLUMNS) {
       if (id === `column-${col}`) return col;
     }
-    // Check if it's a task id
     const task = tasks.find((t) => t.id === id);
     return task ? (task.status as TaskStatus) : null;
   };
@@ -126,14 +99,11 @@ export function KanbanBoard({
     if (!over) return;
 
     const activeId = active.id as number;
-    const overId = over.id;
-
+    const overCol = findColumn(over.id);
     const activeCol = findColumn(activeId);
-    const overCol = findColumn(overId);
 
     if (!activeCol || !overCol || activeCol === overCol) return;
 
-    // Move task to new column optimistically
     setTasks((prev) =>
       prev.map((t) =>
         t.id === activeId ? { ...t, status: overCol } : t
@@ -147,49 +117,35 @@ export function KanbanBoard({
     if (!over) return;
 
     const activeId = active.id as number;
-    const overId = over.id;
-    const targetCol = findColumn(overId);
-
+    const targetCol = findColumn(over.id) ?? findColumn(activeId);
     if (!targetCol) return;
 
-    // Get tasks in the target column (with the moved task already in it)
-    let colTasks = tasks.filter(
-      (t) => t.status === targetCol || t.id === activeId
-    );
-    // Deduplicate & ensure moved task has the right status
-    colTasks = colTasks
-      .map((t) => (t.id === activeId ? { ...t, status: targetCol } : t))
-      .filter(
-        (t, i, arr) => arr.findIndex((x) => x.id === t.id) === i
-      );
+    // 현재 tasks state에서 해당 컬럼의 태스크 목록
+    let colTasks = tasks.filter((t) => t.status === targetCol);
 
-    // Handle same-column reorder
-    if (typeof overId === "number" && overId !== activeId) {
-      const oldIndex = colTasks.findIndex((t) => t.id === activeId);
-      const newIndex = colTasks.findIndex((t) => t.id === overId);
-      if (oldIndex !== -1 && newIndex !== -1) {
-        colTasks = arrayMove(colTasks, oldIndex, newIndex);
+    // 같은 컬럼 내 순서 변경
+    if (typeof over.id === "number" && over.id !== activeId) {
+      const oldIdx = colTasks.findIndex((t) => t.id === activeId);
+      const newIdx = colTasks.findIndex((t) => t.id === over.id);
+      if (oldIdx !== -1 && newIdx !== -1) {
+        colTasks = arrayMove(colTasks, oldIdx, newIdx);
       }
     }
 
-    // Optimistic UI update for ordering
+    // position 재할당 & 낙관적 UI 업데이트
+    const reordered = colTasks.map((t, i) => ({
+      ...t,
+      position: i + 1,
+    }));
+
     setTasks((prev) => {
-      const others = prev.filter(
-        (t) => t.status !== targetCol && t.id !== activeId
-      );
-      return [
-        ...others,
-        ...colTasks.map((t, i) => ({
-          ...t,
-          status: targetCol,
-          position: i + 1,
-        })),
-      ];
+      const others = prev.filter((t) => t.status !== targetCol);
+      return [...others, ...reordered];
     });
 
-    const items = colTasks.map((t, i) => ({
+    const items = reordered.map((t) => ({
       id: t.id,
-      position: i + 1,
+      position: t.position,
       status: targetCol,
     }));
 
@@ -257,18 +213,7 @@ export function KanbanBoard({
                     strategy={verticalListSortingStrategy}
                   >
                     {colTasks.map((task) => (
-                      <KanbanCard
-                        key={task.id}
-                        task={task}
-                        isExpanded={expandedTaskId === task.id}
-                        subtasks={expandedTaskId === task.id ? subtasks : []}
-                        onToggleExpand={() => onToggleExpand(task.id)}
-                        onUpdateTask={onUpdateTask}
-                        onDeleteTask={onDeleteTask}
-                        onCreateSubtask={onCreateSubtask}
-                        onToggleSubtask={onToggleSubtask}
-                        onDeleteSubtask={onDeleteSubtask}
-                      />
+                      <KanbanCard key={task.id} task={task} />
                     ))}
                   </SortableContext>
                 </DroppableColumn>

@@ -20,7 +20,7 @@ export function useSubtasks({ userId, taskId }: UseSubtasksOptions) {
       );
       setSubtasks(data.subtasks);
     } catch {
-      setSubtasks([]);
+      // 에러 시 기존 데이터 보존
     } finally {
       setLoading(false);
     }
@@ -41,34 +41,42 @@ export function useSubtasks({ userId, taskId }: UseSubtasksOptions) {
         `/api/todo/subtasks?user_id=${userId}`,
         { method: "POST", body: JSON.stringify(data) }
       );
-      await loadSubtasks();
+      setSubtasks((prev) => [...prev, subtask]);
       return subtask;
     },
-    [userId, loadSubtasks]
+    [userId]
   );
 
   const toggleSubtask = useCallback(
     async (subtaskId: number) => {
       if (!userId) return null;
+      // 낙관적 업데이트
+      setSubtasks((prev) =>
+        prev.map((s) =>
+          s.id === subtaskId ? { ...s, is_completed: !s.is_completed } : s
+        )
+      );
       const subtask = await apiFetch<Subtask>(
         `/api/todo/subtasks/${subtaskId}/toggle?user_id=${userId}`,
         { method: "POST" }
       );
-      await loadSubtasks();
+      setSubtasks((prev) =>
+        prev.map((s) => (s.id === subtaskId ? subtask : s))
+      );
       return subtask;
     },
-    [userId, loadSubtasks]
+    [userId]
   );
 
   const deleteSubtask = useCallback(
     async (subtaskId: number) => {
       if (!userId) return;
+      setSubtasks((prev) => prev.filter((s) => s.id !== subtaskId));
       await apiFetch(`/api/todo/subtasks/${subtaskId}?user_id=${userId}`, {
         method: "DELETE",
       });
-      await loadSubtasks();
     },
-    [userId, loadSubtasks]
+    [userId]
   );
 
   return {
