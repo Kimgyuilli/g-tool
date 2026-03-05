@@ -12,7 +12,7 @@ status: reviewed
 
 1. https://console.cloud.google.com/ 접속
 2. 상단 프로젝트 선택 드롭다운 → **새 프로젝트**
-3. 프로젝트 이름: `Mail Organizer` (또는 원하는 이름)
+3. 프로젝트 이름: `G-Tool` (또는 원하는 이름)
 4. **만들기** 클릭
 5. 1~2분 대기
 
@@ -32,7 +32,7 @@ URL: https://console.cloud.google.com/apis/credentials/consent
 - **외부** 선택 (개인 계정용) → **만들기**
 
 ### 3b. 앱 정보 입력
-- **앱 이름**: Mail Organizer
+- **앱 이름**: G-Tool
 - **사용자 지원 이메일**: 본인 이메일
 - **개발자 연락처 이메일**: 본인 이메일
 - 나머지는 건너뛰기 가능 → **저장 후 계속**
@@ -59,7 +59,7 @@ URL: https://console.cloud.google.com/apis/credentials
 
 1. **사용자 인증 정보 만들기** → **OAuth 클라이언트 ID**
 2. **애플리케이션 유형**: 웹 애플리케이션
-3. **이름**: Mail Organizer Backend
+3. **이름**: G-Tool Backend
 4. **승인된 리디렉션 URI** → URI 추가:
    ```
    http://localhost:8000/auth/callback

@@ -1,6 +1,6 @@
 # Oracle Cloud Free Tier 배포 가이드
 
-Mail Organizer를 Oracle Cloud ARM VM에 Docker Compose로 배포하는 단계별 가이드.
+G-Tool를 Oracle Cloud ARM VM에 Docker Compose로 배포하는 단계별 가이드.
 
 ---
 
@@ -21,7 +21,7 @@ https://cloud.oracle.com → 로그인 → Compute > Instances > Create Instance
 ### 1-2. 인스턴스 설정
 | 항목 | 값 |
 |------|-----|
-| Name | `mail-organizer` |
+| Name | `g-tool` |
 | Image | **Ubuntu 22.04** (Canonical, aarch64) |
 | Shape | **VM.Standard.A1.Flex** |
 | OCPU | **4** (최대 무료) |
@@ -103,9 +103,9 @@ sudo netfilter-persistent save
 
 ### 옵션 A: DuckDNS (무료, 권장)
 1. https://www.duckdns.org 접속, GitHub/Google 로그인
-2. 서브도메인 생성 (예: `my-mail-organizer`)
+2. 서브도메인 생성 (예: `my-g-tool`)
 3. IP에 VM의 Public IP 입력 → Update
-4. 결과: `my-mail-organizer.duckdns.org`
+4. 결과: `my-g-tool.duckdns.org`
 
 ### 옵션 B: 유료 도메인
 - DNS A 레코드에 VM의 Public IP 설정
@@ -117,8 +117,8 @@ sudo netfilter-persistent save
 
 ### 5-1. 코드 가져오기
 ```bash
-git clone https://github.com/<username>/mail-organizer.git
-cd mail-organizer
+git clone https://github.com/<username>/g-tool.git
+cd g-tool
 ```
 
 > 프라이빗 리포인 경우: SSH key를 VM에 설정하거나, Personal Access Token 사용
@@ -131,7 +131,7 @@ cp .env.production.example .env.production
 nano .env.production
 ```
 ```env
-DOMAIN=my-mail-organizer.duckdns.org    # ← 실제 도메인으로 변경
+DOMAIN=my-g-tool.duckdns.org    # ← 실제 도메인으로 변경
 ```
 
 **`backend/.env`** (API 키 설정):
@@ -143,8 +143,8 @@ nano backend/.env
 ANTHROPIC_API_KEY=sk-ant-api03-실제키
 GOOGLE_CLIENT_ID=실제-클라이언트-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=GOCSPX-실제-시크릿
-GOOGLE_REDIRECT_URI=https://my-mail-organizer.duckdns.org/api/auth/callback
-FRONTEND_URL=https://my-mail-organizer.duckdns.org
+GOOGLE_REDIRECT_URI=https://my-g-tool.duckdns.org/api/auth/callback
+FRONTEND_URL=https://my-g-tool.duckdns.org
 ```
 
 ### 5-3. 빌드 & 실행
@@ -177,11 +177,11 @@ docker compose --env-file .env.production logs caddy
 3. OAuth 2.0 클라이언트 ID 선택
 4. **Authorized redirect URIs**에 추가:
    ```
-   https://my-mail-organizer.duckdns.org/api/auth/callback
+   https://my-g-tool.duckdns.org/api/auth/callback
    ```
 5. **Authorized JavaScript origins**에 추가:
    ```
-   https://my-mail-organizer.duckdns.org
+   https://my-g-tool.duckdns.org
    ```
 6. 저장
 
@@ -191,7 +191,7 @@ docker compose --env-file .env.production logs caddy
 
 브라우저에서:
 ```
-https://my-mail-organizer.duckdns.org
+https://my-g-tool.duckdns.org
 ```
 
 - Caddy가 자동으로 Let's Encrypt HTTPS 인증서를 발급함 (1~2분 소요)
@@ -210,7 +210,7 @@ https://my-mail-organizer.duckdns.org
 
 ### 코드 업데이트
 ```bash
-cd ~/mail-organizer
+cd ~/g-tool
 git pull
 docker compose --env-file .env.production up -d --build
 ```
@@ -228,7 +228,7 @@ docker compose --env-file .env.production down
 ### DB 백업
 ```bash
 # Docker 볼륨에서 SQLite 파일 복사
-docker cp $(docker compose --env-file .env.production ps -q backend):/app/data/mail_organizer.db ./backup_$(date +%Y%m%d).db
+docker cp $(docker compose --env-file .env.production ps -q backend):/app/data/gtool.db ./backup_$(date +%Y%m%d).db
 ```
 
 ### Idle 인스턴스 회수 방지

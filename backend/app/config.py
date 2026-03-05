@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     naver_imap_port: int = 993
 
     # Database
-    database_url: str = "sqlite+aiosqlite:///./mail_organizer.db"
+    database_url: str = "sqlite+aiosqlite:///./gtool.db"
 
     # Frontend
     frontend_url: str = "http://localhost:3000"

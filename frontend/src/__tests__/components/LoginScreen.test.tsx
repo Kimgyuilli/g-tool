@@ -3,11 +3,11 @@ import { describe, it, expect, vi } from "vitest";
 import { LoginScreen } from "@/features/auth/components/LoginScreen";
 
 describe("LoginScreen", () => {
-  it("renders Mail Organizer title", () => {
+  it("renders G-Tool title", () => {
     const onLogin = vi.fn();
     render(<LoginScreen onLogin={onLogin} />);
 
-    expect(screen.getByText("Mail Organizer")).toBeInTheDocument();
+    expect(screen.getByText("G-Tool")).toBeInTheDocument();
   });
 
   it("renders login button", () => {

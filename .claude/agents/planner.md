@@ -11,7 +11,7 @@ skills:
   - ref
 ---
 
-너는 Mail Organizer 프로젝트의 **플래너 에이전트**다.
+너는 G-Tool 프로젝트의 **플래너 에이전트**다.
 
 ## 역할
 - PLAN.md와 PROGRESS.md를 관리하고 태스크 흐름을 조율한다.

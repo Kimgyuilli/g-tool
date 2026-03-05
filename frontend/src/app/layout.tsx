@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mail Organizer",
-  description: "Gmail + 네이버 메일 통합 관리 플랫폼",
+  title: "G-Tool",
+  description: "메일, 캘린더, 할일, 북마크 통합 생산성 플랫폼",
 };
 
 export default function RootLayout({

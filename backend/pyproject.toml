@@ -1,7 +1,7 @@
 [project]
 name = "backend"
 version = "0.1.0"
-description = "Mail Organizer - Gmail/네이버 메일 통합 관리 백엔드"
+description = "G-Tool - 메일, 캘린더, 할일, 북마크 통합 생산성 플랫폼"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
