@@ -50,7 +50,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("백그라운드 스케줄러 종료")
 
 
-app = FastAPI(title="Mail Organizer", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="G-Tool", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

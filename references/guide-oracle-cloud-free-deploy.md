@@ -18,7 +18,7 @@ status: draft
 - **4 OCPUs** (ARM Ampere A1 vCPU)
 - **24 GB RAM**
 - 최대 4개의 VM 인스턴스로 분할 가능 (예: 1x4 OCPU, 2x2 OCPU, 4x1 OCPU 등)
-- 권장: **1개 VM에 4 OCPU + 24 GB RAM 할당** (Mail Organizer 배포용)
+- 권장: **1개 VM에 4 OCPU + 24 GB RAM 할당** (G-Tool 배포용)
 
 **스토리지:**
 - 부트 볼륨: 최대 **200 GB** (총합)
@@ -96,8 +96,8 @@ version: '3.8'
 
 services:
   backend:
-    image: ghcr.io/<username>/mail-organizer-backend:latest
-    container_name: mail-organizer-backend
+    image: ghcr.io/<username>/g-tool-backend:latest
+    container_name: g-tool-backend
     restart: unless-stopped
     volumes:
       - ./data:/app/data  # SQLite DB
@@ -113,8 +113,8 @@ services:
       retries: 3
 
   frontend:
-    image: ghcr.io/<username>/mail-organizer-frontend:latest
-    container_name: mail-organizer-frontend
+    image: ghcr.io/<username>/g-tool-frontend:latest
+    container_name: g-tool-frontend
     restart: unless-stopped
     environment:
       - NEXT_PUBLIC_API_URL=https://yourdomain.com/api
@@ -211,7 +211,7 @@ Networking > IP Management > Reserved Public IPs > Reserve Public IP Address
 oci network public-ip create \
   --compartment-id <compartment-ocid> \
   --lifetime RESERVED \
-  --display-name mail-organizer-ip
+  --display-name g-tool-ip
 ```
 
 **도메인 연결:**
@@ -288,7 +288,7 @@ oci compute instance launch \
   --subnet-id <subnet-ocid> \
   --assign-public-ip true \
   --ssh-authorized-keys-file ~/.ssh/id_rsa.pub \
-  --display-name mail-organizer-vm
+  --display-name g-tool-vm
 ```
 
 **권장 OS:**
@@ -339,8 +339,8 @@ sudo apt install git -y
 
 ```bash
 # 프로젝트 클론 또는 파일 전송
-git clone https://github.com/<username>/mail-organizer.git
-cd mail-organizer
+git clone https://github.com/<username>/g-tool.git
+cd g-tool
 
 # 환경변수 설정
 nano backend/.env
@@ -382,7 +382,7 @@ docker compose logs caddy | grep -i certificate
 **Cron Job (`/etc/cron.daily/backup-db`):**
 ```bash
 #!/bin/bash
-DB_PATH=/home/ubuntu/mail-organizer/data/mail.db
+DB_PATH=/home/ubuntu/g-tool/data/mail.db
 BACKUP_DIR=/home/ubuntu/backups
 DATE=$(date +%Y%m%d_%H%M%S)
 

@@ -80,7 +80,7 @@ export function AppHeader({
 
       {/* Logo */}
       <h1 className="text-base font-semibold tracking-tight hidden sm:block">
-        Mail Organizer
+        G-Tool
       </h1>
 
       {/* Page navigation */}

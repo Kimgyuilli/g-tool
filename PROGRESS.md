@@ -2,6 +2,32 @@
 
 > v1 (Phase 0~5) 기록 아카이브: [PROGRESS_V1.md](./PROGRESS_V1.md)
 
+## 2026-03-05 — agent (Phase 17: 프로젝트 리네이밍 Mail Organizer → G-Tool)
+### 완료한 작업
+- **코드**: `backend/pyproject.toml`, `backend/app/main.py`, `backend/app/core/exceptions.py`, `backend/app/config.py` (DB명 `gtool.db`), `docker-compose.yml`
+- **프론트엔드**: `layout.tsx`, `AppHeader.tsx`, `LoginScreen.tsx` — 타이틀/설명 변경
+- **테스트**: `smoke.test.tsx`, `LoginScreen.test.tsx` — "G-Tool"로 변경
+- **에이전트**: `.claude/agents/` 5개 파일 — "G-Tool 프로젝트"로 변경
+- **문서**: `CLAUDE.md`, `DEPLOY.md`, `references/guide-google-oauth-setup.md`, `references/guide-oracle-cloud-free-deploy.md`
+- **CI/CD**: `.github/workflows/deploy.yml` — `cd ~/g-tool`
+- **메모리**: `MEMORY.md` — "G-Tool"로 변경
+
+### 검증
+- `uv run ruff check .` — All checks passed
+- `pnpm lint` — 통과
+- `pnpm build` — 빌드 성공
+- `pnpm test` — 35/35 통과
+- `grep "Mail Organizer"` 잔여 — 없음 (PROGRESS.md 과거 기록 제외)
+
+### 다음 할 일
+- 커밋 + PR → main 병합
+- main 병합 후: `gh repo rename g-tool`
+- 배포 서버: `mv ~/-mail-organizer ~/g-tool`, `mv mail_organizer.db gtool.db`
+
+### 이슈/참고
+- PROGRESS.md 과거 기록은 수정하지 않음 (히스토리 보존)
+- GitHub repo rename 시 기존 URL은 자동 redirect됨
+
 ## 2026-03-05 — agent (Phase 16: 캘린더 일정 삭제 기능 추가)
 ### 완료한 작업
 - `backend/app/calendar/service.py`: `delete_event` 함수 추가 (기존 `_build_calendar` + `asyncio.to_thread` 패턴)

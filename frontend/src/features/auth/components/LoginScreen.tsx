@@ -12,11 +12,11 @@ export function LoginScreen({ onLogin }: LoginScreenProps) {
         <div className="flex items-center gap-3">
           <Mail className="h-10 w-10 text-primary" />
           <h1 className="text-4xl font-bold tracking-tight">
-            Mail Organizer
+            G-Tool
           </h1>
         </div>
         <p className="text-lg text-muted-foreground">
-          Gmail + 네이버 메일 통합 관리 플랫폼
+          메일, 캘린더, 할일, 북마크 통합 생산성 플랫폼
         </p>
         <Button size="lg" onClick={onLogin} className="gap-2">
           <svg viewBox="0 0 24 24" className="h-5 w-5" aria-hidden="true">

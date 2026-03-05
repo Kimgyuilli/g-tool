@@ -223,3 +223,16 @@
 | Frontend: useCalendar deleteEvent 함수 | frontend-dev | done | — | useCalendar.ts |
 | Frontend: CalendarEventDetail 삭제 버튼 | frontend-dev | done | — | CalendarEventDetail.tsx |
 | Frontend: CalendarPage deleteEvent 연동 | frontend-dev | done | — | CalendarPage.tsx |
+
+## Phase 17: 프로젝트 리네이밍 (Mail Organizer → G-Tool)
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| 코드 내 프로젝트명/설명 변경 | agent | done | — | pyproject.toml, main.py, exceptions.py, layout.tsx, AppHeader, LoginScreen |
+| 테스트 코드 업데이트 | agent | done | — | smoke.test.tsx, LoginScreen.test.tsx |
+| 에이전트 설명 업데이트 | agent | done | — | .claude/agents/ 5개 파일 |
+| 문서 업데이트 | agent | done | — | CLAUDE.md, DEPLOY.md, references/ |
+| DB 파일명 변경 | agent | done | — | config.py, docker-compose.yml |
+| deploy.yml 서버 경로 변경 | agent | done | — | cd ~/g-tool |
+| 메모리 파일 업데이트 | agent | done | — | MEMORY.md |
+| GitHub 레포 rename + 배포 서버 폴더/DB rename | — | pending | PR 병합 후 | gh repo rename g-tool, 서버 수동 작업 |

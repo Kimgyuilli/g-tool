@@ -1,4 +1,4 @@
-"""Custom exception classes for the Mail Organizer API."""
+"""Custom exception classes for the G-Tool API."""
 
 from __future__ import annotations
 

@@ -6,7 +6,7 @@ services:
     environment:
       - FRONTEND_URL=https://${DOMAIN}
       - GOOGLE_REDIRECT_URI=https://${DOMAIN}/api/auth/callback
-      - DATABASE_URL=sqlite+aiosqlite:///./data/mail_organizer.db
+      - DATABASE_URL=sqlite+aiosqlite:///./data/gtool.db
     volumes:
       - db-data:/app/data
     command: >
