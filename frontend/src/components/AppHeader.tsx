@@ -19,12 +19,13 @@ import {
   Mail,
   Calendar,
   CheckSquare,
+  Bookmark,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AppHeaderProps {
-  activePage: "mail" | "calendar" | "todo";
-  onPageChange: (page: "mail" | "calendar" | "todo") => void;
+  activePage: "mail" | "calendar" | "todo" | "bookmark";
+  onPageChange: (page: "mail" | "calendar" | "todo" | "bookmark") => void;
   userInfo: UserInfo | null;
   sourceFilter: "all" | "gmail" | "naver";
   syncing: boolean;
@@ -107,6 +108,14 @@ export function AppHeader({
         >
           <CheckSquare className="h-4 w-4" />
           <span className="hidden sm:inline">할일</span>
+        </Button>
+        <Button
+          variant={activePage === "bookmark" ? "secondary" : "ghost"}
+          size="sm"
+          onClick={() => onPageChange("bookmark")}
+        >
+          <Bookmark className="h-4 w-4" />
+          <span className="hidden sm:inline">북마크</span>
         </Button>
       </nav>
 

@@ -182,3 +182,27 @@
 | KanbanCard: descDraft 동기화 | frontend-dev | done | — | useEffect 또는 key 활용 |
 | TodoPage: prop drilling 개선 | frontend-dev | done | — | Context 도입 |
 | KanbanCard: 컨텍스트 메뉴 open 제어 | frontend-dev | done | — | dispatchEvent → Radix open/onOpenChange |
+
+## Phase 14: 북마크 (즐겨찾기 링크) 기능 추가
+
+> 자주 사용하는 웹사이트를 한 곳에 모아두는 북마크 페이지. 카테고리별 분류 지원.
+
+### 14-1. Backend — 모델 + CRUD API
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| Bookmark 모델 (BookmarkCategory, Bookmark) | backend-dev | done | — | models.py |
+| Bookmark 스키마 | backend-dev | done | — | schemas.py |
+| Bookmark 서비스 | backend-dev | done | models | service.py |
+| Bookmark 라우터 + main.py 등록 | backend-dev | done | service | /api/bookmark prefix |
+
+### 14-2. Frontend — 타입 + 훅 + UI
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| Bookmark types.ts | frontend-dev | done | — | 인터페이스 + 색상 상수 |
+| useBookmarks 훅 | frontend-dev | done | types, 14-1 | 카테고리+북마크 CRUD |
+| BookmarkCard/Grid/Sidebar 컴포넌트 | frontend-dev | done | types | UI 컴포넌트 |
+| AddBookmarkModal/AddCategoryModal | frontend-dev | done | types | Dialog 컴포넌트 |
+| BookmarkContext + BookmarkPage | frontend-dev | done | 위 전체 | Provider + 레이아웃 |
+| page.tsx + AppHeader 연동 | frontend-dev | done | BookmarkPage | nav에 북마크 탭 추가 |

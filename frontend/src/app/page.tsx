@@ -16,6 +16,7 @@ import { CategorySidebar } from "@/features/mail/components/CategorySidebar";
 import { MailListView } from "@/features/mail/components/MailListView";
 import { CalendarPage } from "@/features/calendar/CalendarPage";
 import { TodoPage } from "@/features/todo/TodoPage";
+import { BookmarkPage } from "@/features/bookmark/BookmarkPage";
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -28,7 +29,7 @@ const LIMIT = 20;
 
 export default function Home() {
   const { userId, hydrated, userInfo, setUserInfo, categories, handleLogin, handleLogout } = useAuth();
-  const [activePage, setActivePage] = useState<"mail" | "calendar" | "todo">("mail");
+  const [activePage, setActivePage] = useState<"mail" | "calendar" | "todo" | "bookmark">("mail");
   const [sourceFilter, setSourceFilter] = useState<"all" | "gmail" | "naver">("all");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [showSenderRules, setShowSenderRules] = useState(false);
@@ -239,6 +240,10 @@ export default function Home() {
 
       <div className={activePage === "todo" ? "flex-1 flex flex-col overflow-hidden" : "hidden"}>
         <TodoPage userId={userId} />
+      </div>
+
+      <div className={activePage === "bookmark" ? "flex-1 flex flex-col overflow-hidden" : "hidden"}>
+        <BookmarkPage userId={userId} />
       </div>
     </div>
   );
