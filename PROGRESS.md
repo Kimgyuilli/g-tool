@@ -38,8 +38,9 @@
 - `pnpm build` — 빌드 성공
 
 ### 다음 할 일
-- 커밋 + PR 생성
+- ~~커밋 + PR 생성~~ → PR #10 완료
 - 수동 테스트: 분류 버튼 클릭 → 진행률 표시 → 분류 완료 확인
+- PR 리뷰 후 main 병합
 
 ### 이슈/참고
 - Structured Outputs의 json_schema는 최상위가 object여야 하므로 batch 응답을 `{"results": [...]}` 형태로 감쌈
