@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-import anthropic
+from openai import AsyncOpenAI
 
 from app.config import settings
 
@@ -49,15 +49,15 @@ JSON 배열로 응답:
 [{{"index": 0, "category": "카테고리명", \
 "confidence": 0.0~1.0, "reason": "한 줄"}}, ...]"""
 
+MODEL = "gpt-4o-mini"
+
 
 def _extract_json(text: str) -> str:
     """Extract JSON from text that may contain markdown code fences."""
     stripped = text.strip()
     if stripped.startswith("```"):
-        # Remove opening fence (```json or ```)
         first_newline = stripped.index("\n")
         stripped = stripped[first_newline + 1 :]
-        # Remove closing fence
         if stripped.endswith("```"):
             stripped = stripped[: -3].strip()
     return stripped
@@ -79,7 +79,7 @@ def _build_feedback_section(examples: list[dict]) -> str:
         "",
     ]
 
-    for ex in examples[:10]:  # 최대 10개만 사용
+    for ex in examples[:10]:
         from_info = f"{ex.get('from_email', '')} ({ex.get('from_name', '')})"
         subject = ex.get("subject", "")
         original = ex.get("original_category", "")
@@ -93,6 +93,10 @@ def _build_feedback_section(examples: list[dict]) -> str:
     return "\n".join(lines)
 
 
+def _get_client() -> AsyncOpenAI:
+    return AsyncOpenAI(api_key=settings.openai_api_key)
+
+
 async def classify_single(
     from_email: str,
     from_name: str,
@@ -101,8 +105,7 @@ async def classify_single(
     feedback_examples: list[dict] | None = None,
     sender_rules: dict[str, str] | None = None,
 ) -> dict:
-    """Classify a single email using Claude API."""
-    # 발신자 규칙 우선 적용
+    """Classify a single email using OpenAI API."""
     if sender_rules and from_email and from_email in sender_rules:
         return {
             "category": sender_rules[from_email],
@@ -110,9 +113,8 @@ async def classify_single(
             "reason": "발신자 규칙 적용 (사용자 피드백 기반)",
         }
 
-    client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+    client = _get_client()
 
-    # Few-shot 프롬프트 생성
     system_prompt = SYSTEM_PROMPT
     if feedback_examples:
         feedback_section = _build_feedback_section(feedback_examples)
@@ -125,14 +127,16 @@ async def classify_single(
         body=_truncate_body(body),
     )
 
-    response = await client.messages.create(
-        model="claude-sonnet-4-5-20250929",
+    response = await client.chat.completions.create(
+        model=MODEL,
         max_tokens=256,
-        system=system_prompt,
-        messages=[{"role": "user", "content": user_message}],
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_message},
+        ],
     )
 
-    text = _extract_json(response.content[0].text)
+    text = _extract_json(response.choices[0].message.content)
     return json.loads(text)
 
 
@@ -145,10 +149,9 @@ async def classify_batch(
     if not emails:
         return []
 
-    # 발신자 규칙으로 자동 분류 가능한 메일 분리
     auto_classified = []
     needs_ai = []
-    index_map = {}  # AI 분류할 메일의 원래 인덱스 매핑
+    index_map = {}
 
     for i, mail in enumerate(emails):
         from_email = mail.get("from_email", "")
@@ -163,19 +166,16 @@ async def classify_batch(
             index_map[len(needs_ai)] = i
             needs_ai.append(mail)
 
-    # AI 분류가 필요한 메일이 없으면 바로 반환
     if not needs_ai:
         return auto_classified
 
-    client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+    client = _get_client()
 
-    # Few-shot 프롬프트 생성
     system_prompt = SYSTEM_PROMPT
     if feedback_examples:
         feedback_section = _build_feedback_section(feedback_examples)
         system_prompt = f"{SYSTEM_PROMPT}\n\n{feedback_section}"
 
-    # 10개씩 청크로 나눠서 API 호출 (토큰 초과 방지)
     chunk_size = 10
     ai_results = []
 
@@ -194,17 +194,18 @@ async def classify_batch(
 
         user_message = BATCH_TEMPLATE.format(emails_text="\n\n".join(parts))
 
-        response = await client.messages.create(
-            model="claude-sonnet-4-5-20250929",
+        response = await client.chat.completions.create(
+            model=MODEL,
             max_tokens=4096,
-            system=system_prompt,
-            messages=[{"role": "user", "content": user_message}],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
         )
 
-        text = _extract_json(response.content[0].text)
+        text = _extract_json(response.choices[0].message.content)
         chunk_results = json.loads(text)
 
-        # 청크 내 index를 원래 메일 목록의 index로 변환
         for result in chunk_results:
             ai_index = result.get("index", 0)
             key = chunk_start + ai_index
@@ -212,7 +213,6 @@ async def classify_batch(
             result["index"] = original_index
         ai_results.extend(chunk_results)
 
-    # 자동 분류 결과와 AI 분류 결과 병합 후 index 순으로 정렬
     all_results = auto_classified + ai_results
     all_results.sort(key=lambda x: x.get("index", 0))
 

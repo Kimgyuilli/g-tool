@@ -10,7 +10,7 @@ dependencies = [
     "aiosqlite",
     "python-dotenv",
     "httpx",
-    "anthropic",
+    "openai",
     "pydantic-settings",
     "google-auth",
     "google-auth-oauthlib",
