@@ -12,8 +12,8 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     google_redirect_uri: str = "http://localhost:8000/auth/callback"
 
-    # Anthropic
-    anthropic_api_key: str = ""
+    # OpenAI
+    openai_api_key: str = ""
 
     # Naver IMAP
     naver_imap_host: str = "imap.naver.com"
