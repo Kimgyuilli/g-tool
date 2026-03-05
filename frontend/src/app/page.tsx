@@ -164,84 +164,82 @@ export default function Home() {
         onMobileMenuToggle={() => setMobileMenuOpen(true)}
       />
 
-      {activePage === "mail" && (
-        <>
-          {/* Mobile sidebar sheet */}
-          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-            <SheetContent side="left" className="w-64 p-0">
-              <SheetTitle className="sr-only">카테고리 메뉴</SheetTitle>
-              {sidebarContent}
-            </SheetContent>
-          </Sheet>
+      <div className={activePage === "mail" ? "flex-1 flex flex-col overflow-hidden" : "hidden"}>
+        {/* Mobile sidebar sheet */}
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetContent side="left" className="w-64 p-0">
+            <SheetTitle className="sr-only">카테고리 메뉴</SheetTitle>
+            {sidebarContent}
+          </SheetContent>
+        </Sheet>
 
-          <NaverConnectModal
-            open={showNaverConnect}
-            naverEmail={naverEmail}
-            naverPassword={naverPassword}
-            connecting={connectingNaver}
-            onEmailChange={setNaverEmail}
-            onPasswordChange={setNaverPassword}
-            onConnect={handleConnectNaver}
-            onClose={closeNaverConnect}
-          />
+        <NaverConnectModal
+          open={showNaverConnect}
+          naverEmail={naverEmail}
+          naverPassword={naverPassword}
+          connecting={connectingNaver}
+          onEmailChange={setNaverEmail}
+          onPasswordChange={setNaverPassword}
+          onConnect={handleConnectNaver}
+          onClose={closeNaverConnect}
+        />
 
-          {/* 3-panel layout */}
-          <div className="flex-1 overflow-hidden flex">
-            {/* Sidebar - separate from ResizablePanelGroup to avoid className issues */}
-            <aside className="hidden md:flex w-56 shrink-0 border-r overflow-auto">
-              {sidebarContent}
-            </aside>
+        {/* 3-panel layout */}
+        <div className="flex-1 overflow-hidden flex">
+          {/* Sidebar - separate from ResizablePanelGroup to avoid className issues */}
+          <aside className="hidden md:flex w-56 shrink-0 border-r overflow-auto">
+            {sidebarContent}
+          </aside>
 
-            <ResizablePanelGroup orientation="horizontal" className="flex-1">
+          <ResizablePanelGroup orientation="horizontal" className="flex-1">
 
-              {/* Mail list panel */}
-              <ResizablePanel
-                defaultSize={selectedMail ? 50 : 100}
-                minSize={30}
-              >
-                <MailListView
-                  loading={loading}
-                  messages={messages}
-                  total={total}
-                  categories={categories}
-                  selectedMailId={selectedMail?.id ?? null}
-                  classifiedCount={classifiedCount}
-                  currentPage={currentPage}
-                  totalPages={totalPages}
-                  onSelectMail={handleSelectMail}
-                  onDragStart={handleDragStart}
-                  onUpdateCategory={handleUpdateCategory}
-                  onPrevPage={() => setOffset(Math.max(0, offset - LIMIT))}
-                  onNextPage={() => setOffset(offset + LIMIT)}
-                />
-              </ResizablePanel>
+            {/* Mail list panel */}
+            <ResizablePanel
+              defaultSize={selectedMail ? 50 : 100}
+              minSize={30}
+            >
+              <MailListView
+                loading={loading}
+                messages={messages}
+                total={total}
+                categories={categories}
+                selectedMailId={selectedMail?.id ?? null}
+                classifiedCount={classifiedCount}
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onSelectMail={handleSelectMail}
+                onDragStart={handleDragStart}
+                onUpdateCategory={handleUpdateCategory}
+                onPrevPage={() => setOffset(Math.max(0, offset - LIMIT))}
+                onNextPage={() => setOffset(offset + LIMIT)}
+              />
+            </ResizablePanel>
 
-              {/* Detail panel - shown when mail selected */}
-              {selectedMail && (
-                <>
-                  <ResizableHandle withHandle />
-                  <ResizablePanel defaultSize={50} minSize={30}>
-                    <MailDetailView
-                      mail={selectedMail}
-                      categories={categories}
-                      onBack={() => setSelectedMail(null)}
-                      onUpdateCategory={handleUpdateCategory}
-                    />
-                  </ResizablePanel>
-                </>
-              )}
-            </ResizablePanelGroup>
-          </div>
-        </>
-      )}
+            {/* Detail panel - shown when mail selected */}
+            {selectedMail && (
+              <>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={50} minSize={30}>
+                  <MailDetailView
+                    mail={selectedMail}
+                    categories={categories}
+                    onBack={() => setSelectedMail(null)}
+                    onUpdateCategory={handleUpdateCategory}
+                  />
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
+        </div>
+      </div>
 
-      {activePage === "calendar" && (
+      <div className={activePage === "calendar" ? "flex-1 flex flex-col overflow-hidden" : "hidden"}>
         <CalendarPage userId={userId} />
-      )}
+      </div>
 
-      {activePage === "todo" && (
+      <div className={activePage === "todo" ? "flex-1 flex flex-col overflow-hidden" : "hidden"}>
         <TodoPage userId={userId} />
-      )}
+      </div>
     </div>
   );
 }

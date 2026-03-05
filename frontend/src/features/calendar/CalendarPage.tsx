@@ -33,7 +33,7 @@ export function CalendarPage({ userId }: CalendarPageProps) {
     goToNextMonth,
     goToToday,
     createEvent,
-  } = useCalendar({ userId, enabled: true });
+  } = useCalendar({ userId });
 
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);

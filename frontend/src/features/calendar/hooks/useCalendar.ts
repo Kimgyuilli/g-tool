@@ -4,10 +4,9 @@ import type { CalendarInfo, CalendarEvent, CalendarsResponse, EventsResponse, Cr
 
 interface UseCalendarOptions {
   userId: number | null;
-  enabled?: boolean; // activePage === "calendar" 일 때만 true
 }
 
-export function useCalendar({ userId, enabled = true }: UseCalendarOptions) {
+export function useCalendar({ userId }: UseCalendarOptions) {
   const [calendars, setCalendars] = useState<CalendarInfo[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [selectedCalendarIds, setSelectedCalendarIds] = useState<Set<string>>(new Set());
@@ -62,19 +61,19 @@ export function useCalendar({ userId, enabled = true }: UseCalendarOptions) {
     }
   }, [userId, currentDate, calendars]);
 
-  // enabled일 때 캘린더 목록 로드
+  // 캘린더 목록 로드
   useEffect(() => {
-    if (enabled && userId) {
+    if (userId) {
       loadCalendars();
     }
-  }, [enabled, userId, loadCalendars]);
+  }, [userId, loadCalendars]);
 
-  // enabled일 때 이벤트 로드
+  // 이벤트 로드
   useEffect(() => {
-    if (enabled && userId) {
+    if (userId) {
       loadEvents();
     }
-  }, [enabled, userId, currentDate, loadEvents]);
+  }, [userId, currentDate, loadEvents]);
 
   // 선택된 캘린더로 이벤트 필터링
   const filteredEvents = events.filter((ev) => selectedCalendarIds.has(ev.calendar_id));
