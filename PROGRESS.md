@@ -2,6 +2,43 @@
 
 > v1 (Phase 0~5) 기록 아카이브: [PROGRESS_V1.md](./PROGRESS_V1.md)
 
+## 2026-03-05 — agent (Phase 14: 북마크 기능 추가)
+### 완료한 작업
+**백엔드 (14-1)**
+- `backend/app/bookmark/__init__.py`: 패키지 초기화
+- `backend/app/bookmark/models.py`: BookmarkCategory, Bookmark SQLAlchemy 모델 (Mapped[] 스타일, Index, SET NULL on category delete)
+- `backend/app/bookmark/schemas.py`: Pydantic 스키마 (CategoryCreate, CategoryResponse, BookmarkCreate, BookmarkUpdate, BookmarkResponse, URL 자동 https:// 보정)
+- `backend/app/bookmark/service.py`: async CRUD (소유권 검증, favicon 자동 생성, position 자동 계산, bookmark_count 서브쿼리)
+- `backend/app/bookmark/router.py`: `/api/bookmark` 라우터 (7개 엔드포인트: 카테고리 3 + 북마크 4)
+- `backend/app/main.py`: bookmark_router 등록
+
+**프론트엔드 (14-2)**
+- `frontend/src/features/bookmark/types.ts`: Bookmark, BookmarkCategory 인터페이스 + 색상 상수
+- `frontend/src/features/bookmark/hooks/useBookmarks.ts`: 카테고리+북마크 CRUD 훅 (낙관적 업데이트)
+- `frontend/src/features/bookmark/BookmarkContext.tsx`: Context Provider (prop drilling 방지, 모달 상태 관리)
+- `frontend/src/features/bookmark/BookmarkPage.tsx`: 사이드바 + 그리드 레이아웃
+- `frontend/src/features/bookmark/components/BookmarkCard.tsx`: 카드 (favicon, 제목, URL, 카테고리 뱃지, 수정/삭제)
+- `frontend/src/features/bookmark/components/BookmarkGrid.tsx`: 반응형 카드 그리드 (grid-cols-1 sm:2 lg:3 xl:4)
+- `frontend/src/features/bookmark/components/BookmarkCategorySidebar.tsx`: 카테고리 사이드바 (전체/미분류 필터, 카테고리 목록)
+- `frontend/src/features/bookmark/components/AddBookmarkModal.tsx`: 북마크 생성/수정 Dialog (key 패턴으로 setState-in-effect 해결)
+- `frontend/src/features/bookmark/components/AddCategoryModal.tsx`: 카테고리 생성 Dialog (색상 선택)
+- `frontend/src/components/AppHeader.tsx`: 북마크 탭 추가 (Bookmark 아이콘)
+- `frontend/src/app/page.tsx`: activePage 타입에 "bookmark" 추가, BookmarkPage 렌더링
+
+**검증**
+- `uv run ruff check .` — All checks passed
+- ESLint — 통과
+- `next build` — 빌드 성공
+
+### 다음 할 일
+- 커밋 + PR 생성
+- 수동 테스트: 카테고리 생성 → 북마크 등록 → 카테고리 필터 → 북마크 수정 → 삭제
+
+### 이슈/참고
+- ESLint `react-hooks/set-state-in-effect` 룰 → AddBookmarkModal에서 FormFields 별도 컴포넌트 + key 패턴으로 해결
+- 카테고리 삭제 시 북마크는 DB의 `ondelete="SET NULL"`로 미분류로 전환
+- favicon은 Google Favicon API로 자동 생성 (`https://www.google.com/s2/favicons?domain={domain}&sz=32`)
+
 ## 2026-03-05 — agent (Phase 13: Todo 코드 최적화 및 개선)
 ### 완료한 작업
 **백엔드 (6가지 개선)**

@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.auth.router import router as auth_router
+from app.bookmark.router import router as bookmark_router
 from app.calendar.router import router as calendar_router
 from app.config import settings
 from app.core.background_sync import sync_all_users
@@ -61,6 +62,7 @@ app.add_middleware(
 
 
 app.include_router(auth_router)
+app.include_router(bookmark_router)
 app.include_router(calendar_router)
 app.include_router(classify_router)
 app.include_router(gmail_router)
