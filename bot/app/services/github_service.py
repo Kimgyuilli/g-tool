@@ -30,15 +30,10 @@ def health_check() -> dict:
 
 
 def fetch_file_content(file_path: str) -> str | None:
-    """파일 내용을 조회한다. source_mode에 따라 로컬 또는 GitHub에서 읽는다. 없으면 None 반환."""
-    if settings.source_mode == "local":
-        try:
-            return (Path(settings.local_source_path) / file_path).read_text(encoding="utf-8")
-        except Exception:
-            return None
+    """로컬 소스에서 파일 내용을 읽는다. 없으면 None."""
     try:
-        content = _get_repo().get_contents(file_path, ref=settings.github_base_branch)
-        return content.decoded_content.decode("utf-8")
+        full = Path(settings.local_source_path) / file_path
+        return full.read_text(encoding="utf-8")
     except Exception:
         return None
 
