@@ -12,6 +12,7 @@ from app.auth.service import build_credentials
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.exceptions import AccountNotConnectedException
+from app.core.security import decrypt_value, encrypt_value
 from app.mail.models import User
 
 logger = logging.getLogger(__name__)
@@ -28,14 +29,16 @@ async def get_google_user(
     if not user.google_oauth_token or not user.google_refresh_token:
         raise AccountNotConnectedException("Google")
 
-    credentials = build_credentials(user.google_oauth_token, user.google_refresh_token)
+    token = decrypt_value(user.google_oauth_token)
+    refresh_token = decrypt_value(user.google_refresh_token)
+    credentials = build_credentials(token, refresh_token)
 
     if credentials.expired and credentials.refresh_token:
         try:
             from google.auth.transport.requests import Request
 
             await asyncio.to_thread(credentials.refresh, Request())
-            user.google_oauth_token = credentials.token
+            user.google_oauth_token = encrypt_value(credentials.token)
             await db.commit()
         except Exception as exc:
             logger.warning(f"Google 토큰 갱신 실패 (user={user.id}): {exc}")

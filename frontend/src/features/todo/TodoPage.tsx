@@ -3,13 +3,9 @@
 import { TodoProvider } from "@/features/todo/TodoContext";
 import { KanbanBoard } from "@/features/todo/components/KanbanBoard";
 
-interface TodoPageProps {
-  userId: number | null;
-}
-
-export function TodoPage({ userId }: TodoPageProps) {
+export function TodoPage() {
   return (
-    <TodoProvider userId={userId}>
+    <TodoProvider>
       <KanbanBoard />
     </TodoProvider>
   );

@@ -4,13 +4,11 @@ import { apiFetch } from "@/lib/api";
 import type { UserInfo } from "@/features/auth/types";
 
 interface UseNaverConnectProps {
-  userId: number | null;
   setUserInfo: React.Dispatch<React.SetStateAction<UserInfo | null>>;
   loadCategoryCounts: () => Promise<void>;
 }
 
 export function useNaverConnect({
-  userId,
   setUserInfo,
   loadCategoryCounts,
 }: UseNaverConnectProps) {
@@ -20,10 +18,10 @@ export function useNaverConnect({
   const [connectingNaver, setConnectingNaver] = useState(false);
 
   const handleConnectNaver = useCallback(async () => {
-    if (!userId || !naverEmail || !naverPassword) return;
+    if (!naverEmail || !naverPassword) return;
     setConnectingNaver(true);
     try {
-      await apiFetch(`/api/naver/connect?user_id=${userId}`, {
+      await apiFetch("/api/naver/connect", {
         method: "POST",
         body: JSON.stringify({
           naver_email: naverEmail,
@@ -34,7 +32,7 @@ export function useNaverConnect({
       setShowNaverConnect(false);
       setNaverEmail("");
       setNaverPassword("");
-      const updatedInfo = await apiFetch<UserInfo>(`/auth/me?user_id=${userId}`);
+      const updatedInfo = await apiFetch<UserInfo>("/auth/me");
       setUserInfo(updatedInfo);
       await loadCategoryCounts();
     } catch (err) {
@@ -42,7 +40,7 @@ export function useNaverConnect({
     } finally {
       setConnectingNaver(false);
     }
-  }, [userId, naverEmail, naverPassword, setUserInfo, loadCategoryCounts]);
+  }, [naverEmail, naverPassword, setUserInfo, loadCategoryCounts]);
 
   const closeNaverConnect = useCallback(() => {
     setShowNaverConnect(false);

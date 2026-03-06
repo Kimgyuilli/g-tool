@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from collections.abc import AsyncGenerator
 
 import pytest
@@ -10,7 +11,11 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+# Set test SECRET_KEY before importing app modules
+os.environ.setdefault("SECRET_KEY", "test-secret-key-for-pytest")
+
 from app.core.database import Base, get_db
+from app.core.security import create_access_token
 
 # In-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite+aiosqlite://"
@@ -55,6 +60,12 @@ async def client() -> AsyncGenerator[AsyncClient, None]:
         yield ac
 
     app.dependency_overrides.clear()
+
+
+def auth_cookie(user_id: int) -> dict[str, str]:
+    """Generate a session_token cookie header for test requests."""
+    token = create_access_token(user_id)
+    return {"Cookie": f"session_token={token}"}
 
 
 @pytest.fixture

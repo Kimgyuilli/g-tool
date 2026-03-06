@@ -2,106 +2,87 @@ import { useEffect, useState, useCallback, useSyncExternalStore } from "react";
 import { apiFetch } from "@/lib/api";
 import type { UserInfo } from "@/features/auth/types";
 
-// --- userId external store (SSR-safe) ---
-let cachedUserId: number | null = null;
-let listeners: Array<() => void> = [];
-
-function getSnapshot(): number | null {
-  return cachedUserId;
+// --- auth state external store (SSR-safe) ---
+interface AuthState {
+  userInfo: UserInfo | null;
+  loading: boolean;
 }
 
-function getServerSnapshot(): number | null {
-  return null;
+let authState: AuthState = { userInfo: null, loading: true };
+let authListeners: Array<() => void> = [];
+let authChecked = false;
+
+function getAuthSnapshot(): AuthState {
+  return authState;
 }
 
-function subscribe(onStoreChange: () => void): () => void {
-  listeners.push(onStoreChange);
+function getAuthServerSnapshot(): AuthState {
+  return { userInfo: null, loading: true };
+}
+
+function subscribeAuth(onStoreChange: () => void): () => void {
+  authListeners.push(onStoreChange);
+
+  // Trigger auth check on first subscribe (client-side)
+  if (!authChecked) {
+    authChecked = true;
+    apiFetch<UserInfo>("/auth/me")
+      .then((info) => {
+        authState = { userInfo: info, loading: false };
+        authListeners.forEach((l) => l());
+      })
+      .catch(() => {
+        authState = { userInfo: null, loading: false };
+        authListeners.forEach((l) => l());
+      });
+  }
+
   return () => {
-    listeners = listeners.filter((l) => l !== onStoreChange);
+    authListeners = authListeners.filter((l) => l !== onStoreChange);
   };
 }
 
-function setStoredUserId(id: number | null) {
-  cachedUserId = id;
-  if (id !== null) {
-    localStorage.setItem("user_id", String(id));
-  } else {
-    localStorage.removeItem("user_id");
-  }
-  listeners.forEach((l) => l());
-}
-
-// Initialize from URL params or localStorage on first load
-if (typeof window !== "undefined") {
-  const params = new URLSearchParams(window.location.search);
-  const uid = params.get("user_id");
-  if (uid) {
-    cachedUserId = Number(uid);
-    localStorage.setItem("user_id", uid);
-    window.history.replaceState({}, "", "/");
-  } else {
-    const stored = localStorage.getItem("user_id");
-    cachedUserId = stored ? Number(stored) : null;
-  }
-}
-
-// --- hydration external store ---
-let isHydrated = false;
-let hydrationListeners: Array<() => void> = [];
-
-function getHydratedSnapshot(): boolean {
-  return isHydrated;
-}
-
-function getHydratedServerSnapshot(): boolean {
-  return false;
-}
-
-function subscribeHydration(onStoreChange: () => void): () => void {
-  hydrationListeners.push(onStoreChange);
-  // Mark hydrated on first subscribe (client-side only)
-  if (!isHydrated) {
-    isHydrated = true;
-    // Notify on next microtask to avoid sync setState
-    Promise.resolve().then(() => hydrationListeners.forEach((l) => l()));
-  }
-  return () => {
-    hydrationListeners = hydrationListeners.filter((l) => l !== onStoreChange);
-  };
+function setAuthState(update: Partial<AuthState>) {
+  authState = { ...authState, ...update };
+  authListeners.forEach((l) => l());
 }
 
 export function useAuth() {
-  const userId = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
-  const hydrated = useSyncExternalStore(subscribeHydration, getHydratedSnapshot, getHydratedServerSnapshot);
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
+  const { userInfo, loading } = useSyncExternalStore(subscribeAuth, getAuthSnapshot, getAuthServerSnapshot);
   const [categories, setCategories] = useState<string[]>([]);
 
-  // Load user info + categories
+  const isLoggedIn = userInfo !== null;
+
+  const setUserInfo = useCallback((updater: UserInfo | null | ((prev: UserInfo | null) => UserInfo | null)) => {
+    const newInfo = typeof updater === "function" ? updater(authState.userInfo) : updater;
+    setAuthState({ userInfo: newInfo });
+  }, []);
+
+  // Load categories when logged in
   useEffect(() => {
-    if (!userId) return;
-    apiFetch<UserInfo>(`/auth/me?user_id=${userId}`)
-      .then(setUserInfo)
-      .catch(() => {
-        setStoredUserId(null);
-      });
+    if (!isLoggedIn) return;
     apiFetch<{ categories: string[] }>("/api/classify/categories")
       .then((data) => setCategories(data.categories))
       .catch(() => {});
-  }, [userId]);
+  }, [isLoggedIn]);
 
   const handleLogin = useCallback(async () => {
     const data = await apiFetch<{ auth_url: string }>("/auth/login");
     window.location.href = data.auth_url;
   }, []);
 
-  const handleLogout = useCallback(() => {
-    setStoredUserId(null);
-    setUserInfo(null);
+  const handleLogout = useCallback(async () => {
+    try {
+      await apiFetch("/auth/logout", { method: "POST" });
+    } catch {
+      // ignore
+    }
+    setAuthState({ userInfo: null });
   }, []);
 
   return {
-    userId,
-    hydrated,
+    isLoggedIn,
+    loading,
     userInfo,
     setUserInfo,
     categories,

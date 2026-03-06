@@ -30,11 +30,10 @@ export function useTodoContext() {
 }
 
 interface TodoProviderProps {
-  userId: number | null;
   children: ReactNode;
 }
 
-export function TodoProvider({ userId, children }: TodoProviderProps) {
+export function TodoProvider({ children }: TodoProviderProps) {
   const [expandedTaskId, setExpandedTaskId] = useState<number | null>(null);
 
   const {
@@ -44,10 +43,10 @@ export function TodoProvider({ userId, children }: TodoProviderProps) {
     updateTask,
     deleteTask,
     reorderTasks,
-  } = useTodo({ userId, enabled: true });
+  } = useTodo({ enabled: true });
 
   const { subtasks, createSubtask, toggleSubtask, deleteSubtask } =
-    useSubtasks({ userId, taskId: expandedTaskId });
+    useSubtasks({ taskId: expandedTaskId });
 
   const onToggleExpand = useCallback((taskId: number) => {
     setExpandedTaskId((prev) => (prev === taskId ? null : taskId));

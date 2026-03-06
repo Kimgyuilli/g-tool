@@ -11,6 +11,7 @@ from app.config import settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.exceptions import ExternalServiceException, IMAPAuthenticationException
+from app.core.security import decrypt_value, encrypt_value
 from app.mail.models import User
 from app.mail.services.helpers import (
     format_mail_response,
@@ -55,9 +56,9 @@ async def connect_naver(
     if not ok:
         raise IMAPAuthenticationException()
 
-    # Save credentials
+    # Save credentials (encrypted)
     user.naver_email = req.naver_email
-    user.naver_app_password = req.naver_app_password
+    user.naver_app_password = encrypt_value(req.naver_app_password)
     await db.commit()
 
     return {"status": "connected", "naver_email": req.naver_email}
@@ -72,7 +73,7 @@ async def get_folders(
         settings.naver_imap_host,
         settings.naver_imap_port,
         user.naver_email,
-        user.naver_app_password,
+        decrypt_value(user.naver_app_password),
     )
 
     return {"folders": folders}

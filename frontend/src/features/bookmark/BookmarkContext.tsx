@@ -40,11 +40,10 @@ export function useBookmarkContext() {
 }
 
 interface BookmarkProviderProps {
-  userId: number | null;
   children: ReactNode;
 }
 
-export function BookmarkProvider({ userId, children }: BookmarkProviderProps) {
+export function BookmarkProvider({ children }: BookmarkProviderProps) {
   const [addBookmarkOpen, setAddBookmarkOpen] = useState(false);
   const [editingBookmark, setEditingBookmark] = useState<Bookmark | null>(null);
   const [addCategoryOpen, setAddCategoryOpen] = useState(false);
@@ -60,7 +59,7 @@ export function BookmarkProvider({ userId, children }: BookmarkProviderProps) {
     createBookmark,
     updateBookmark,
     deleteBookmark,
-  } = useBookmarks({ userId, enabled: true });
+  } = useBookmarks({ enabled: true });
 
   const onSelectCategory = useCallback((id: number | null) => {
     setSelectedCategoryId(id);

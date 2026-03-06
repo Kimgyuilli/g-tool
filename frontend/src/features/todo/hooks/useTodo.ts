@@ -8,83 +8,72 @@ import type {
 } from "@/features/todo/types";
 
 interface UseTodoOptions {
-  userId: number | null;
   enabled?: boolean;
 }
 
-export function useTodo({ userId, enabled = true }: UseTodoOptions) {
+export function useTodo({ enabled = true }: UseTodoOptions = {}) {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(false);
 
   const loadTasks = useCallback(async () => {
-    if (!userId) return;
     setLoading(true);
     try {
-      const data = await apiFetch<TasksResponse>(
-        `/api/todo/tasks?user_id=${userId}`
-      );
+      const data = await apiFetch<TasksResponse>("/api/todo/tasks");
       setTasks(data.tasks);
     } catch {
       // 에러 시 기존 데이터 보존
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
-    if (enabled && userId) {
+    if (enabled) {
       loadTasks();
     }
-  }, [enabled, userId, loadTasks]);
+  }, [enabled, loadTasks]);
 
   const createTask = useCallback(
     async (data: TaskCreateRequest) => {
-      if (!userId) return null;
-      const task = await apiFetch<Task>(
-        `/api/todo/tasks?user_id=${userId}`,
-        { method: "POST", body: JSON.stringify(data) }
-      );
+      const task = await apiFetch<Task>("/api/todo/tasks", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
       setTasks((prev) => [...prev, task]);
       return task;
     },
-    [userId]
+    []
   );
 
   const updateTask = useCallback(
     async (taskId: number, data: TaskUpdateRequest) => {
-      if (!userId) return null;
-      const updated = await apiFetch<Task>(
-        `/api/todo/tasks/${taskId}?user_id=${userId}`,
-        { method: "PATCH", body: JSON.stringify(data) }
-      );
+      const updated = await apiFetch<Task>(`/api/todo/tasks/${taskId}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
       setTasks((prev) =>
         prev.map((t) => (t.id === taskId ? updated : t))
       );
       return updated;
     },
-    [userId]
+    []
   );
 
-  const deleteTask = useCallback(
-    async (taskId: number) => {
-      if (!userId) return;
-      setTasks((prev) => prev.filter((t) => t.id !== taskId));
-      await apiFetch(`/api/todo/tasks/${taskId}?user_id=${userId}`, {
-        method: "DELETE",
-      });
-    },
-    [userId]
-  );
+  const deleteTask = useCallback(async (taskId: number) => {
+    setTasks((prev) => prev.filter((t) => t.id !== taskId));
+    await apiFetch(`/api/todo/tasks/${taskId}`, {
+      method: "DELETE",
+    });
+  }, []);
 
   const reorderTasks = useCallback(
     async (items: { id: number; position: number; status?: string }[]) => {
-      if (!userId) return;
-      await apiFetch(`/api/todo/tasks/reorder?user_id=${userId}`, {
+      await apiFetch("/api/todo/tasks/reorder", {
         method: "POST",
         body: JSON.stringify({ items }),
       });
     },
-    [userId]
+    []
   );
 
   return {

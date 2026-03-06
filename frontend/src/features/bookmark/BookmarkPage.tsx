@@ -6,13 +6,9 @@ import { BookmarkGrid } from "./components/BookmarkGrid";
 import { AddBookmarkModal } from "./components/AddBookmarkModal";
 import { AddCategoryModal } from "./components/AddCategoryModal";
 
-interface BookmarkPageProps {
-  userId: number | null;
-}
-
-export function BookmarkPage({ userId }: BookmarkPageProps) {
+export function BookmarkPage() {
   return (
-    <BookmarkProvider userId={userId}>
+    <BookmarkProvider>
       <div className="flex flex-1 overflow-hidden">
         <aside className="w-56 shrink-0 border-r overflow-auto hidden md:flex flex-col">
           <BookmarkCategorySidebar />

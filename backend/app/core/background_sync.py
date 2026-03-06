@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.service import build_credentials
 from app.config import settings
 from app.core.database import AsyncSessionLocal
+from app.core.security import decrypt_value, encrypt_value
 from app.mail.models import Classification, Label, Mail, SyncState, User
 from app.mail.services.classifier import classify_batch
 from app.mail.services.feedback import get_feedback_examples, get_sender_rules
@@ -107,9 +108,9 @@ async def sync_user_gmail(user: User, db: AsyncSession) -> int:
         return 0
 
     try:
-        credentials = build_credentials(
-            user.google_oauth_token, user.google_refresh_token
-        )
+        token = decrypt_value(user.google_oauth_token)
+        refresh_token = decrypt_value(user.google_refresh_token)
+        credentials = build_credentials(token, refresh_token)
 
         sync_state = await _get_sync_state(db, user.id, "gmail")
         page_token = sync_state.next_page_token if sync_state else None
@@ -136,9 +137,9 @@ async def sync_user_gmail(user: User, db: AsyncSession) -> int:
 
         details = await get_messages_batch(credentials, new_ids)
 
-        # OAuth 토큰이 갱신되었으면 DB에 저장
-        if credentials.token != user.google_oauth_token:
-            user.google_oauth_token = credentials.token
+        # OAuth 토큰이 갱신되었으면 DB에 암호화하여 저장
+        if credentials.token != token:
+            user.google_oauth_token = encrypt_value(credentials.token)
 
         _save_mails(db, user.id, "gmail", details)
         await _update_sync_state(
@@ -177,7 +178,7 @@ async def sync_user_naver(user: User, db: AsyncSession) -> int:
             settings.naver_imap_host,
             settings.naver_imap_port,
             user.naver_email,
-            user.naver_app_password,
+            decrypt_value(user.naver_app_password),
             folder="INBOX",
             since_uid=since_uid,
             max_results=50,

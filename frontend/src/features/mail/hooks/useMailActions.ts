@@ -13,7 +13,6 @@ export interface ClassifyProgress {
 }
 
 interface UseMailActionsProps {
-  userId: number | null;
   userInfo: UserInfo | null;
   sourceFilter: "all" | "gmail" | "naver";
   messages: MailMessage[];
@@ -24,7 +23,6 @@ interface UseMailActionsProps {
 }
 
 export function useMailActions({
-  userId,
   userInfo,
   sourceFilter,
   messages,
@@ -42,14 +40,14 @@ export function useMailActions({
   const [editingMailId, setEditingMailId] = useState<number | null>(null);
 
   const handleSync = useCallback(async () => {
-    if (!userId || !userInfo) return;
+    if (!userInfo) return;
     setSyncing(true);
     try {
       const promises = [];
       if (userInfo.google_connected) {
         promises.push(
           apiFetch<{ synced: number }>(
-            `/api/gmail/sync?user_id=${userId}&max_results=50`,
+            "/api/gmail/sync?max_results=50",
             { method: "POST" }
           )
         );
@@ -57,7 +55,7 @@ export function useMailActions({
       if (userInfo.naver_connected) {
         promises.push(
           apiFetch<{ synced: number }>(
-            `/api/naver/sync?user_id=${userId}&max_results=50`,
+            "/api/naver/sync?max_results=50",
             { method: "POST" }
           )
         );
@@ -72,20 +70,20 @@ export function useMailActions({
     } finally {
       setSyncing(false);
     }
-  }, [userId, userInfo, loadMessages, loadCategoryCounts]);
+  }, [userInfo, loadMessages, loadCategoryCounts]);
 
   const handleClassify = useCallback(async () => {
-    if (!userId) return;
     setClassifying(true);
     setClassifyProgress(null);
 
     try {
       const sourceParam =
         sourceFilter === "all" ? "" : `&source=${sourceFilter}`;
-      const url = `${API_BASE_URL}/api/classify/mails?user_id=${userId}${sourceParam}`;
+      const url = `${API_BASE_URL}/api/classify/mails?${sourceParam}`;
 
       const response = await fetch(url, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
       });
 
@@ -138,10 +136,9 @@ export function useMailActions({
       setClassifying(false);
       setClassifyProgress(null);
     }
-  }, [userId, sourceFilter, loadMessages, loadCategoryCounts]);
+  }, [sourceFilter, loadMessages, loadCategoryCounts]);
 
   const handleApplyLabels = useCallback(async () => {
-    if (!userId) return;
     const classifiedMails = messages.filter((m) => m.classification);
     if (classifiedMails.length === 0) {
       toast.warning("분류된 메일이 없습니다. 먼저 AI 분류를 실행하세요.");
@@ -150,7 +147,7 @@ export function useMailActions({
     setApplyingLabels(true);
     try {
       const result = await apiFetch<{ applied: number }>(
-        `/api/gmail/apply-labels?user_id=${userId}`,
+        "/api/gmail/apply-labels",
         {
           method: "POST",
           body: JSON.stringify({
@@ -164,13 +161,12 @@ export function useMailActions({
     } finally {
       setApplyingLabels(false);
     }
-  }, [userId, messages]);
+  }, [messages]);
 
   const handleUpdateCategory = useCallback(
     async (classificationId: number, newCategory: string, mailId: number) => {
-      if (!userId) return;
       try {
-        await apiFetch(`/api/classify/update?user_id=${userId}`, {
+        await apiFetch("/api/classify/update", {
           method: "PUT",
           body: JSON.stringify({
             classification_id: classificationId,
@@ -216,24 +212,23 @@ export function useMailActions({
         toast.error(`수정 실패: ${err}`);
       }
     },
-    [userId, selectedMail, setMessages, loadCategoryCounts, loadFeedbackStats]
+    [selectedMail, setMessages, loadCategoryCounts, loadFeedbackStats]
   );
 
   const handleSelectMail = useCallback(
     async (mail: MailMessage) => {
-      if (!userId) return;
       try {
         const endpoint =
           mail.source === "gmail"
-            ? `/api/gmail/messages/${mail.id}?user_id=${userId}`
-            : `/api/naver/messages/${mail.id}?user_id=${userId}`;
+            ? `/api/gmail/messages/${mail.id}`
+            : `/api/naver/messages/${mail.id}`;
         const detail = await apiFetch<MailDetail>(endpoint);
         setSelectedMail(detail);
       } catch {
         toast.error("메일을 불러올 수 없습니다.");
       }
     },
-    [userId]
+    []
   );
 
   return {

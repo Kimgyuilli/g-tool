@@ -34,7 +34,8 @@ services:
     expose:
       - "8001"
     volumes:
-      - .:/workspace/source:ro
+      - ./backend/app:/workspace/source/backend/app:ro
+      - ./frontend/src:/workspace/source/frontend/src:ro
     command: uvicorn app.main:app --host 0.0.0.0 --port 8001
 
   caddy:

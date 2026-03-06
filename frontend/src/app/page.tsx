@@ -28,7 +28,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 const LIMIT = 20;
 
 export default function Home() {
-  const { userId, hydrated, userInfo, setUserInfo, categories, handleLogin, handleLogout } = useAuth();
+  const { isLoggedIn, loading: authLoading, userInfo, setUserInfo, categories, handleLogin, handleLogout } = useAuth();
   const [activePage, setActivePage] = useState<"mail" | "calendar" | "todo" | "bookmark">("mail");
   const [sourceFilter, setSourceFilter] = useState<"all" | "gmail" | "naver">("all");
   const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
@@ -36,10 +36,10 @@ export default function Home() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const { messages, setMessages, total, setTotal, offset, setOffset, loading, loadMessages } =
-    useMessages({ userId, sourceFilter, categoryFilter, limit: LIMIT });
+    useMessages({ sourceFilter, categoryFilter, limit: LIMIT });
 
-  const { categoryCounts, loadCategoryCounts } = useCategoryCounts({ userId, sourceFilter });
-  const { feedbackStats, loadFeedbackStats } = useFeedbackStats({ userId });
+  const { categoryCounts, loadCategoryCounts } = useCategoryCounts({ sourceFilter });
+  const { feedbackStats, loadFeedbackStats } = useFeedbackStats();
 
   const {
     syncing,
@@ -54,7 +54,6 @@ export default function Home() {
     handleUpdateCategory,
     handleSelectMail,
   } = useMailActions({
-    userId,
     userInfo,
     sourceFilter,
     messages,
@@ -74,10 +73,9 @@ export default function Home() {
     connectingNaver,
     handleConnectNaver,
     closeNaverConnect,
-  } = useNaverConnect({ userId, setUserInfo, loadCategoryCounts });
+  } = useNaverConnect({ setUserInfo, loadCategoryCounts });
 
   const { dragOverCategory, setDragOverCategory, handleDrop } = useDragAndDrop({
-    userId,
     sourceFilter,
     categoryFilter,
     offset,
@@ -111,8 +109,8 @@ export default function Home() {
     e.dataTransfer.effectAllowed = "move";
   };
 
-  // Wait for client-side hydration
-  if (!hydrated) {
+  // Wait for auth check
+  if (authLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Skeleton className="h-8 w-48" />
@@ -120,7 +118,7 @@ export default function Home() {
     );
   }
 
-  if (!userId) {
+  if (!isLoggedIn) {
     return <LoginScreen onLogin={handleLogin} />;
   }
 
@@ -237,15 +235,15 @@ export default function Home() {
       </div>
 
       <div className={activePage === "calendar" ? "flex-1 flex flex-col overflow-hidden" : "hidden"}>
-        <CalendarPage userId={userId} />
+        <CalendarPage />
       </div>
 
       <div className={activePage === "todo" ? "flex-1 flex flex-col overflow-hidden" : "hidden"}>
-        <TodoPage userId={userId} />
+        <TodoPage />
       </div>
 
       <div className={activePage === "bookmark" ? "flex-1 flex flex-col overflow-hidden" : "hidden"}>
-        <BookmarkPage userId={userId} />
+        <BookmarkPage />
       </div>
     </div>
   );

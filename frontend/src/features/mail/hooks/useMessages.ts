@@ -3,14 +3,12 @@ import { apiFetch } from "@/lib/api";
 import type { MailMessage, MailListResponse } from "@/features/mail/types";
 
 interface UseMessagesProps {
-  userId: number | null;
   sourceFilter: "all" | "gmail" | "naver";
   categoryFilter: string | null;
   limit: number;
 }
 
 export function useMessages({
-  userId,
   sourceFilter,
   categoryFilter,
   limit,
@@ -22,14 +20,13 @@ export function useMessages({
 
   const loadMessages = useCallback(
     async (newOffset?: number) => {
-      if (!userId) return;
       const o = newOffset ?? offset;
       setLoading(true);
       try {
         const sourceParam = sourceFilter === "all" ? "" : `&source=${sourceFilter}`;
         const categoryParam = categoryFilter ? `&category=${categoryFilter}` : "";
         const data = await apiFetch<MailListResponse>(
-          `/api/inbox/messages?user_id=${userId}&offset=${o}&limit=${limit}${sourceParam}${categoryParam}`
+          `/api/inbox/messages?offset=${o}&limit=${limit}${sourceParam}${categoryParam}`
         );
         setMessages(data.messages);
         setTotal(data.total);
@@ -39,7 +36,7 @@ export function useMessages({
         setLoading(false);
       }
     },
-    [userId, offset, sourceFilter, categoryFilter, limit]
+    [offset, sourceFilter, categoryFilter, limit]
   );
 
   useEffect(() => {

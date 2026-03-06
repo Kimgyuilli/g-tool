@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from httpx import AsyncClient
 
+from tests.conftest import auth_cookie
+
 
 async def test_get_categories(client: AsyncClient):
     """GET /api/classify/categories should return available categories."""
@@ -37,8 +39,9 @@ async def test_update_classification_success(
     }
 
     response = await client.put(
-        f"/api/classify/update?user_id={sample_user.id}",
+        "/api/classify/update",
         json=request_body,
+        headers=auth_cookie(sample_user.id),
     )
     assert response.status_code == 200
     data = response.json()
@@ -56,8 +59,9 @@ async def test_update_classification_not_found(client: AsyncClient, sample_user)
     }
 
     response = await client.put(
-        f"/api/classify/update?user_id={sample_user.id}",
+        "/api/classify/update",
         json=request_body,
+        headers=auth_cookie(sample_user.id),
     )
     assert response.status_code == 404
     data = response.json()
@@ -86,8 +90,9 @@ async def test_update_classification_unauthorized(
     }
 
     response = await client.put(
-        f"/api/classify/update?user_id={other_user.id}",
+        "/api/classify/update",
         json=request_body,
+        headers=auth_cookie(other_user.id),
     )
     assert response.status_code == 403
     data = response.json()
@@ -99,7 +104,8 @@ async def test_get_feedback_stats(
 ):
     """GET /api/classify/feedback-stats should return feedback statistics."""
     response = await client.get(
-        f"/api/classify/feedback-stats?user_id={sample_user.id}"
+        "/api/classify/feedback-stats",
+        headers=auth_cookie(sample_user.id),
     )
     assert response.status_code == 200
     data = response.json()

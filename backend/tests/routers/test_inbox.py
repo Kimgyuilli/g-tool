@@ -4,12 +4,16 @@ from __future__ import annotations
 
 from httpx import AsyncClient
 
+from tests.conftest import auth_cookie
+
 
 async def test_list_inbox_messages_all(
     client: AsyncClient, sample_user, sample_mails, sample_classification
 ):
     """GET /api/inbox/messages should return all messages from both sources."""
-    response = await client.get(f"/api/inbox/messages?user_id={sample_user.id}")
+    response = await client.get(
+        "/api/inbox/messages", headers=auth_cookie(sample_user.id)
+    )
     assert response.status_code == 200
     data = response.json()
 
@@ -26,7 +30,8 @@ async def test_list_inbox_messages_gmail_only(
 ):
     """GET /api/inbox/messages?source=gmail should return only Gmail messages."""
     response = await client.get(
-        f"/api/inbox/messages?user_id={sample_user.id}&source=gmail"
+        "/api/inbox/messages?source=gmail",
+        headers=auth_cookie(sample_user.id),
     )
     assert response.status_code == 200
     data = response.json()
@@ -41,7 +46,8 @@ async def test_list_inbox_messages_naver_only(
 ):
     """GET /api/inbox/messages?source=naver should return only Naver messages."""
     response = await client.get(
-        f"/api/inbox/messages?user_id={sample_user.id}&source=naver"
+        "/api/inbox/messages?source=naver",
+        headers=auth_cookie(sample_user.id),
     )
     assert response.status_code == 200
     data = response.json()
@@ -56,7 +62,8 @@ async def test_list_inbox_messages_by_category(
 ):
     """GET /api/inbox/messages?category=업무 should filter by category."""
     response = await client.get(
-        f"/api/inbox/messages?user_id={sample_user.id}&category=업무"
+        "/api/inbox/messages?category=업무",
+        headers=auth_cookie(sample_user.id),
     )
     assert response.status_code == 200
     data = response.json()
@@ -71,7 +78,8 @@ async def test_list_inbox_messages_unclassified(
 ):
     """GET /api/inbox/messages?category=unclassified returns unclassified."""
     response = await client.get(
-        f"/api/inbox/messages?user_id={sample_user.id}&category=unclassified"
+        "/api/inbox/messages?category=unclassified",
+        headers=auth_cookie(sample_user.id),
     )
     assert response.status_code == 200
     data = response.json()
@@ -86,7 +94,8 @@ async def test_get_category_counts(
 ):
     """GET /api/inbox/category-counts should return category statistics."""
     response = await client.get(
-        f"/api/inbox/category-counts?user_id={sample_user.id}"
+        "/api/inbox/category-counts",
+        headers=auth_cookie(sample_user.id),
     )
     assert response.status_code == 200
     data = response.json()

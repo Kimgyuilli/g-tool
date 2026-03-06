@@ -2,6 +2,55 @@
 
 > v1 (Phase 0~5) 기록 아카이브: [PROGRESS_V1.md](./PROGRESS_V1.md)
 
+## 2026-03-07 — agent (Phase 22: 보안 개선)
+### 완료한 작업
+**22-1. 인프라 보안**
+- `docker-compose.yml`: error-bot 볼륨 마운트 `.:/workspace/source:ro` → `./backend/app`, `./frontend/src`만 마운트
+- `Caddyfile`: 보안 헤더 추가 (HSTS, X-Content-Type-Options, X-Frame-Options, Referrer-Policy, Permissions-Policy)
+
+**22-2. JWT 세션 인증**
+- `backend/pyproject.toml`: `PyJWT>=2.8`, `cryptography>=43.0` 의존성 추가
+- `backend/app/config.py`: `secret_key`, `jwt_expire_minutes` 설정 추가
+- `backend/app/core/security.py`: **신규** — JWT create/verify + Fernet encrypt/decrypt 유틸리티
+- `backend/app/core/dependencies.py`: `get_current_user` Cookie JWT 인증으로 전면 변경 (Query user_id → Cookie session_token)
+- `backend/app/auth/router.py`: OAuth callback에서 JWT 쿠키 설정 + `POST /auth/logout` 엔드포인트 추가 + `/auth/me`에서 user_id Query 제거
+- `frontend/src/lib/api.ts`: `credentials: "include"` 추가 (쿠키 자동 전송)
+- `frontend/src/features/auth/hooks/useAuth.ts`: 전면 재작성 — localStorage/URL params 제거, useSyncExternalStore 기반 쿠키 인증, `/auth/me` 성공 여부로 로그인 판단
+- `frontend/src/features/*/hooks/*.ts`: 10개 파일에서 `?user_id=${userId}` 제거 (~35곳)
+  - useNaverConnect, useTodo, useSubtasks, useCalendar, useBookmarks, useMessages, useCategoryCounts, useFeedbackStats, useDragAndDrop, useMailActions
+- `frontend/src/app/page.tsx`: userId prop 전달 전면 제거, 인증 상태를 isLoggedIn/loading으로 변경
+- CalendarPage, TodoPage, BookmarkPage, TodoContext, BookmarkContext: userId prop 제거
+- `.github/workflows/deploy.yml`: SECRET_KEY 시크릿 추가
+- `backend/.env.example`: SECRET_KEY 추가
+
+**22-3. DB 토큰 암호화**
+- `backend/app/auth/router.py`: OAuth callback에서 토큰 암호화 저장
+- `backend/app/auth/dependencies.py`: get_google_user에서 토큰 복호화 + 갱신 시 재암호화
+- `backend/app/mail/routers/naver.py`: naver_app_password 암호화 저장 + 복호화 사용
+- `backend/app/core/background_sync.py`: Gmail/Naver 동기화 시 토큰 복호화 + 갱신 시 재암호화
+- `backend/app/core/migrate_encrypt.py`: **신규** — 기존 평문 토큰 일괄 암호화 마이그레이션 스크립트
+
+**테스트 업데이트**
+- `backend/tests/conftest.py`: `SECRET_KEY` 환경변수 설정 + `auth_cookie()` 헬퍼 함수 추가
+- `backend/tests/routers/test_*.py`: 5개 파일 — `?user_id=` → `headers=auth_cookie()` 방식으로 전면 변경
+
+### 검증
+- `uv run ruff check .` — All checks passed
+- `uv run pytest tests/ -v` — **24 passed**
+- `pnpm lint` — 통과
+- `pnpm build` — 빌드 성공
+
+### 다음 할 일
+- GitHub Secrets에 `SECRET_KEY` 등록 (32자 이상 랜덤 문자열)
+- 배포 서버에서 `python -m app.core.migrate_encrypt` 실행 (기존 평문 토큰 암호화)
+- 수동 테스트: Google 로그인 → 쿠키 설정 → API 호출 → 로그아웃
+
+### 이슈/참고
+- JWT InsecureKeyLengthWarning은 테스트 환경의 짧은 키 때문 (프로덕션에서는 32자 이상 SECRET_KEY 사용)
+- 기존 사용자는 마이그레이션 스크립트 실행 전까지 API 호출 시 토큰 복호화 실패 가능 → 배포 직후 마이그레이션 필수
+- background_sync는 내부 DB 직접 조회이므로 JWT 불필요 (변경 없음)
+- CORS `allow_credentials=True`는 이미 설정되어 있어 추가 변경 불필요
+
 ## 2026-03-06 — agent (Phase 21: Error-Bot AI 분석 품질 개선)
 ### 완료한 작업
 - `bot/app/services/ai_provider.py`: 모델 `gpt-4o-mini` → `gpt-4o`, `max_tokens` 4096 → 16384

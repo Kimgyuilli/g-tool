@@ -4,7 +4,6 @@ import { apiFetch } from "@/lib/api";
 import type { MailMessage, MailListResponse } from "@/features/mail/types";
 
 interface UseDragAndDropProps {
-  userId: number | null;
   sourceFilter: "all" | "gmail" | "naver";
   categoryFilter: string | null;
   offset: number;
@@ -21,7 +20,6 @@ interface UseDragAndDropProps {
 }
 
 export function useDragAndDrop({
-  userId,
   sourceFilter,
   categoryFilter,
   offset,
@@ -48,13 +46,13 @@ export function useDragAndDrop({
         if (classificationId) {
           await handleUpdateCategory(Number(classificationId), targetCategory, mailId);
         } else {
-          await apiFetch(`/api/classify/mails?user_id=${userId}&mail_ids=${mailId}`, {
+          await apiFetch(`/api/classify/mails?mail_ids=${mailId}`, {
             method: "POST",
           });
           const sourceParam = sourceFilter === "all" ? "" : `&source=${sourceFilter}`;
           const categoryParam = categoryFilter ? `&category=${categoryFilter}` : "";
           const data = await apiFetch<MailListResponse>(
-            `/api/inbox/messages?user_id=${userId}&offset=${offset}&limit=${limit}${sourceParam}${categoryParam}`
+            `/api/inbox/messages?offset=${offset}&limit=${limit}${sourceParam}${categoryParam}`
           );
           const updatedMail = data.messages.find((m) => m.id === mailId);
           if (updatedMail?.classification) {
@@ -75,7 +73,6 @@ export function useDragAndDrop({
       }
     },
     [
-      userId,
       sourceFilter,
       categoryFilter,
       offset,

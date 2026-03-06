@@ -2,11 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import type { CalendarInfo, CalendarEvent, CalendarsResponse, EventsResponse, CreateEventRequest } from "@/features/calendar/types";
 
-interface UseCalendarOptions {
-  userId: number | null;
-}
-
-export function useCalendar({ userId }: UseCalendarOptions) {
+export function useCalendar() {
   const [calendars, setCalendars] = useState<CalendarInfo[]>([]);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [selectedCalendarIds, setSelectedCalendarIds] = useState<Set<string>>(new Set());
@@ -15,9 +11,8 @@ export function useCalendar({ userId }: UseCalendarOptions) {
 
   // 캘린더 목록 로드
   const loadCalendars = useCallback(async () => {
-    if (!userId) return;
     try {
-      const data = await apiFetch<CalendarsResponse>(`/api/calendar/calendars?user_id=${userId}`);
+      const data = await apiFetch<CalendarsResponse>("/api/calendar/calendars");
       setCalendars(data.calendars);
       // 기본적으로 모든 캘린더 선택
       setSelectedCalendarIds(new Set(data.calendars.map((c) => c.id)));
@@ -25,11 +20,11 @@ export function useCalendar({ userId }: UseCalendarOptions) {
       // 캘린더 권한 없을 수 있음
       setCalendars([]);
     }
-  }, [userId]);
+  }, []);
 
   // 이벤트 로드 (현재 월 기준, 모든 캘린더에서)
   const loadEvents = useCallback(async (date?: Date) => {
-    if (!userId || calendars.length === 0) return;
+    if (calendars.length === 0) return;
     setLoading(true);
     try {
       const target = date || currentDate;
@@ -42,7 +37,7 @@ export function useCalendar({ userId }: UseCalendarOptions) {
       const results = await Promise.allSettled(
         calendars.map((cal) =>
           apiFetch<EventsResponse>(
-            `/api/calendar/events?user_id=${userId}&calendar_id=${encodeURIComponent(cal.id)}&time_min=${timeMin}&time_max=${timeMax}`
+            `/api/calendar/events?calendar_id=${encodeURIComponent(cal.id)}&time_min=${timeMin}&time_max=${timeMax}`
           )
         )
       );
@@ -59,21 +54,17 @@ export function useCalendar({ userId }: UseCalendarOptions) {
     } finally {
       setLoading(false);
     }
-  }, [userId, currentDate, calendars]);
+  }, [currentDate, calendars]);
 
   // 캘린더 목록 로드
   useEffect(() => {
-    if (userId) {
-      loadCalendars();
-    }
-  }, [userId, loadCalendars]);
+    loadCalendars();
+  }, [loadCalendars]);
 
   // 이벤트 로드
   useEffect(() => {
-    if (userId) {
-      loadEvents();
-    }
-  }, [userId, currentDate, loadEvents]);
+    loadEvents();
+  }, [currentDate, loadEvents]);
 
   // 선택된 캘린더로 이벤트 필터링
   const filteredEvents = events.filter((ev) => selectedCalendarIds.has(ev.calendar_id));
@@ -107,23 +98,21 @@ export function useCalendar({ userId }: UseCalendarOptions) {
   }, []);
 
   const createEvent = useCallback(async (req: CreateEventRequest) => {
-    if (!userId) return null;
-    const event = await apiFetch<CalendarEvent>(`/api/calendar/events?user_id=${userId}`, {
+    const event = await apiFetch<CalendarEvent>("/api/calendar/events", {
       method: "POST",
       body: JSON.stringify(req),
     });
     // 생성 후 이벤트 목록 새로고침
     await loadEvents();
     return event;
-  }, [userId, loadEvents]);
+  }, [loadEvents]);
 
   const deleteEvent = useCallback(async (eventId: string, calendarId: string) => {
-    if (!userId) return;
-    await apiFetch(`/api/calendar/events/${encodeURIComponent(eventId)}?user_id=${userId}&calendar_id=${encodeURIComponent(calendarId)}`, {
+    await apiFetch(`/api/calendar/events/${encodeURIComponent(eventId)}?calendar_id=${encodeURIComponent(calendarId)}`, {
       method: "DELETE",
     });
     await loadEvents();
-  }, [userId, loadEvents]);
+  }, [loadEvents]);
 
   return {
     calendars,

@@ -17,11 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { CalendarEvent, CreateEventRequest } from "@/features/calendar/types";
 import { toast } from "sonner";
 
-interface CalendarPageProps {
-  userId: number | null;
-}
-
-export function CalendarPage({ userId }: CalendarPageProps) {
+export function CalendarPage() {
   const {
     calendars,
     events,
@@ -36,7 +32,7 @@ export function CalendarPage({ userId }: CalendarPageProps) {
     goToToday,
     createEvent,
     deleteEvent,
-  } = useCalendar({ userId });
+  } = useCalendar();
 
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);

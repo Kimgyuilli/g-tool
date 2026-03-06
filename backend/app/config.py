@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     sync_interval_minutes: int = 15
     auto_classify: bool = True
 
+    # JWT
+    secret_key: str = ""
+    jwt_expire_minutes: int = 1440  # 24시간
+
     # Error Bot
     error_bot_url: str = ""
 

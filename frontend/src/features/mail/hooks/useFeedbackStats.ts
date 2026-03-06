@@ -2,34 +2,26 @@ import { useEffect, useState, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import type { FeedbackStats } from "@/features/mail/types";
 
-interface UseFeedbackStatsProps {
-  userId: number | null;
-}
-
-export function useFeedbackStats({ userId }: UseFeedbackStatsProps) {
+export function useFeedbackStats() {
   const [feedbackStats, setFeedbackStats] = useState<FeedbackStats | null>(null);
 
-  // Auto-load on deps change
+  // Auto-load
   useEffect(() => {
-    if (!userId) return;
-    apiFetch<FeedbackStats>(
-      `/api/classify/feedback-stats?user_id=${userId}`
-    )
+    apiFetch<FeedbackStats>("/api/classify/feedback-stats")
       .then(setFeedbackStats)
       .catch(() => setFeedbackStats(null));
-  }, [userId]);
+  }, []);
 
   const loadFeedbackStats = useCallback(async () => {
-    if (!userId) return;
     try {
       const data = await apiFetch<FeedbackStats>(
-        `/api/classify/feedback-stats?user_id=${userId}`
+        "/api/classify/feedback-stats"
       );
       setFeedbackStats(data);
     } catch {
       setFeedbackStats(null);
     }
-  }, [userId]);
+  }, []);
 
   return { feedbackStats, loadFeedbackStats };
 }

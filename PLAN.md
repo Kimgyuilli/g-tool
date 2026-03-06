@@ -317,3 +317,35 @@
 | PR builder changes 형식 지원 | agent | done | 스키마 | pr_builder.py |
 | 테스트 업데이트 | agent | done | 위 전체 | test_ai_service, test_pipeline |
 | 검증: lint + 테스트 | agent | done | 테스트 | ruff + pytest 52 passed |
+
+## Phase 22: 보안 개선
+
+> URL query parameter `user_id`를 JWT 쿠키 인증으로 교체, DB 토큰 암호화, Caddy 보안 헤더, error-bot 볼륨 마운트 축소
+
+### 22-1. 인프라 보안
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| 볼륨 마운트 축소 (error-bot) | agent | done | — | docker-compose.yml |
+| Caddy 보안 헤더 추가 | agent | done | — | Caddyfile |
+
+### 22-2. JWT 세션 인증
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| PyJWT 의존성 + config 설정 | agent | done | — | pyproject.toml, config.py |
+| JWT 유틸리티 (security.py) | agent | done | — | create/verify access token |
+| get_current_user → Cookie JWT | agent | done | security.py | core/dependencies.py |
+| OAuth callback → 쿠키 설정 + logout | agent | done | security.py | auth/router.py |
+| 프론트엔드 credentials: include | agent | done | — | api.ts |
+| useAuth 쿠키 기반으로 전면 단순화 | agent | done | — | useAuth.ts |
+| 모든 훅에서 user_id query 제거 | agent | done | — | 10개 파일 ~35곳 |
+| deploy.yml SECRET_KEY 추가 | agent | done | — | deploy.yml |
+
+### 22-3. DB 토큰 암호화
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| cryptography 의존성 + Fernet 유틸리티 | agent | done | — | pyproject.toml, security.py |
+| 토큰 저장/읽기 지점 암호화 적용 | agent | done | Fernet | auth, naver, background_sync |
+| 마이그레이션 스크립트 | agent | done | Fernet | migrate_encrypt.py |

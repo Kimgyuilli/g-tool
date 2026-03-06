@@ -21,11 +21,12 @@ jobs:
           BOT_GITHUB_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN }}
           BOT_GITHUB_REPO: ${{ secrets.BOT_GITHUB_REPO }}
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
         with:
           host: ${{ secrets.ORACLE_HOST }}
           username: ${{ secrets.ORACLE_USERNAME }}
           key: ${{ secrets.ORACLE_SSH_KEY }}
-          envs: DOMAIN,OPENAI_API_KEY,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,BOT_GITHUB_TOKEN,BOT_GITHUB_REPO,DISCORD_WEBHOOK_URL
+          envs: DOMAIN,OPENAI_API_KEY,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,BOT_GITHUB_TOKEN,BOT_GITHUB_REPO,DISCORD_WEBHOOK_URL,SECRET_KEY
           script: |
             cd ~/g-tool
             git pull origin main
@@ -40,6 +41,7 @@ jobs:
             OPENAI_API_KEY=${OPENAI_API_KEY}
             GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
             GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+            SECRET_KEY=${SECRET_KEY}
             EOF
 
             # bot/.env
