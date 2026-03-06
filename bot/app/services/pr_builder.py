@@ -49,12 +49,24 @@ def build_diff(original_files: dict[str, str], modified_files: list[dict]) -> st
 
 
 def build_pr_body(report: ErrorReport, result: dict, original_files: dict[str, str] | None = None) -> str:
-    changed_files_list = result.get("files", [])
+    changes = result.get("changes", [])
     changed_files = "\n".join(
-        f"- `{f['path']}`" for f in changed_files_list
+        f"- `{c['path']}`" for c in changes
     ) or "- 없음"
 
-    diff_section = build_diff(original_files or {}, changed_files_list)
+    # changes에서 original→modified를 적용한 최종 파일을 생성하여 diff 계산
+    if original_files and changes:
+        applied: dict[str, str] = {}
+        for c in changes:
+            path = c["path"]
+            content = applied.get(path, original_files.get(path, ""))
+            content = content.replace(c["original"], c["modified"], 1)
+            applied[path] = content
+        modified_files = [{"path": p, "content": ct} for p, ct in applied.items()]
+    else:
+        modified_files = []
+
+    diff_section = build_diff(original_files or {}, modified_files)
 
     return PR_BODY_TEMPLATE.format(
         error_type=report.errorType,

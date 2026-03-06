@@ -18,6 +18,7 @@ _DISPLAY_NAMES = {
     # test_ai_service
     "test_analyze_error_returns_parsed_response": "AI 분석 - 정상 응답 파싱",
     "test_analyze_error_returns_none_on_api_exception": "AI 분석 - API 예외 시 None 반환",
+    "test_analyze_error_should_fix_false": "AI 분석 - should_fix=false 반환",
     # test_discord_service
     "test_send_error_alert_posts_correct_embed": "Discord 알림 - 에러 알림 전송",
     "test_send_pr_alert_posts_correct_embed": "Discord 알림 - PR 생성 알림 전송",
@@ -28,11 +29,24 @@ _DISPLAY_NAMES = {
     "test_process_error_no_stack_entries": "에러 처리 - 스택 항목 없으면 코드 조회 건너뜀",
     "test_process_error_ai_failure_sends_failure_alert": "에러 처리 - AI 실패 시 실패 알림 전송",
     "test_process_error_ai_validation_failure_sends_failure_alert": "에러 처리 - AI 응답 검증 실패 시 실패 알림 전송",
-    "test_validate_ai_result_no_files": "AI 검증 - 수정 파일 없으면 실패",
-    "test_validate_ai_result_missing_path": "AI 검증 - path 누락 시 실패",
+    "test_validate_ai_result_no_changes": "AI 검증 - 수정 파일 없으면 실패",
+    "test_validate_ai_result_missing_fields": "AI 검증 - 필드 누락 시 실패",
     "test_validate_ai_result_unknown_path": "AI 검증 - 알 수 없는 경로 시 실패",
-    "test_validate_ai_result_empty_content": "AI 검증 - 빈 내용 시 실패",
+    "test_validate_ai_result_empty_original": "AI 검증 - 빈 original 시 실패",
+    "test_validate_ai_result_empty_modified": "AI 검증 - 빈 modified 시 실패",
     "test_validate_ai_result_valid": "AI 검증 - 정상 응답 통과",
+    # apply_changes
+    "test_apply_changes_success": "diff 적용 - 정상 적용",
+    "test_apply_changes_original_not_found": "diff 적용 - original 블록 미발견",
+    "test_apply_changes_file_not_found": "diff 적용 - 원본 파일 미발견",
+    "test_apply_changes_multiple_changes_same_file": "diff 적용 - 동일 파일 다중 변경",
+    # validate_changes
+    "test_validate_changes_ok": "변경 검증 - 정상 통과",
+    "test_validate_changes_excessive_deletion": "변경 검증 - 50% 이상 삭제 차단",
+    "test_validate_changes_delete_more_than_3x_add": "변경 검증 - 과도한 삭제 차단",
+    # should_fix
+    "test_process_error_should_fix_false_skips_pr": "에러 처리 - should_fix=false 시 PR 건너뜀",
+    "test_process_error_diff_apply_failure": "에러 처리 - diff 적용 실패 시 실패 알림",
     "test_build_diff_shows_changes": "diff 생성 - 변경사항 표시",
     "test_build_diff_no_changes": "diff 생성 - 변경 없으면 '변경 없음'",
     "test_pr_body_contains_diff_section": "에러 처리 - PR 본문에 diff 섹션 포함",

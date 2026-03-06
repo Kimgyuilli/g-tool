@@ -37,6 +37,58 @@ def _is_duplicate(report: "ErrorReport") -> bool:
     return False
 
 
+def apply_changes(original_files: dict[str, str], changes: list[dict]) -> list[dict] | str:
+    """changes의 original→modified를 원본에 적용.
+    성공 시 [{"path": ..., "content": ...}] 반환.
+    실패 시 에러 문자열 반환.
+    """
+    result = []
+    # 파일별로 changes를 그룹화
+    file_changes: dict[str, list[dict]] = {}
+    for c in changes:
+        file_changes.setdefault(c["path"], []).append(c)
+
+    for path, path_changes in file_changes.items():
+        if path not in original_files:
+            return f"원본 파일을 찾을 수 없음: {path}"
+        content = original_files[path]
+        for c in path_changes:
+            if c["original"] not in content:
+                return f"original 블록을 원본에서 찾을 수 없음: {path}"
+            content = content.replace(c["original"], c["modified"], 1)
+        result.append({"path": path, "content": content})
+
+    return result
+
+
+def validate_changes(
+    original_files: dict[str, str], applied_files: list[dict]
+) -> str | None:
+    """적용된 변경이 안전한지 검증. 문제 있으면 사유 문자열, 정상이면 None."""
+    for f in applied_files:
+        original = original_files.get(f["path"], "")
+        original_lines = original.splitlines()
+        new_lines = f["content"].splitlines()
+
+        original_count = len(original_lines)
+        new_count = len(new_lines)
+
+        if original_count == 0:
+            continue
+
+        deleted = max(0, original_count - new_count)
+        added = max(0, new_count - original_count)
+
+        # 삭제 줄 > 추가 줄 × 3 → 차단
+        if added > 0 and deleted > added * 3:
+            return f"과도한 삭제: {f['path']} (삭제 {deleted}줄 > 추가 {added}줄 × 3)"
+        # 원본 대비 50% 이상 삭제 → 차단
+        if deleted > original_count * 0.5:
+            return f"원본의 50% 이상 삭제: {f['path']} (삭제 {deleted}/{original_count}줄)"
+
+    return None
+
+
 async def process_error(report: ErrorReport) -> None:
     try:
         # 0. 중복 에러 필터링
@@ -93,12 +145,39 @@ async def process_error(report: ErrorReport) -> None:
             await send_failure_alert(report, "AI 분석 실패")
             return
 
-        # 4-1. AI 응답 검증
+        # 4-1. should_fix 체크 — 수정 불필요 시 분석 결과만 알리고 종료
+        if not result.get("should_fix", True):
+            skip_reason = result.get("skip_reason", "수정 불필요")
+            logger.info("AI 판단: 수정 불필요 — %s", skip_reason)
+            await send_failure_alert(report, f"수정 불필요: {skip_reason}")
+            return
+
+        # 4-2. no-op 변경 필터링 (original == modified)
+        result["changes"] = [
+            c for c in result.get("changes", [])
+            if c.get("original") != c.get("modified")
+        ]
+
+        # 4-3. AI 응답 검증
         known_files = set(error_files.keys()) | set(context_files.keys())
         validation_error = validate_ai_result(result, known_files)
         if validation_error:
             logger.warning("AI 응답 검증 실패: %s", validation_error)
             await send_failure_alert(report, f"AI 응답 검증 실패: {validation_error}")
+            return
+
+        # 4-4. diff 적용 (original → modified 치환)
+        applied = apply_changes(all_files, result["changes"])
+        if isinstance(applied, str):
+            logger.warning("diff 적용 실패: %s", applied)
+            await send_failure_alert(report, f"diff 적용 실패: {applied}")
+            return
+
+        # 4-5. 변경 안전성 검증
+        change_error = validate_changes(all_files, applied)
+        if change_error:
+            logger.warning("변경 검증 실패: %s", change_error)
+            await send_failure_alert(report, f"변경 검증 실패: {change_error}")
             return
 
         summary = result.get("summary", "에러 자동 수정")
@@ -112,7 +191,7 @@ async def process_error(report: ErrorReport) -> None:
         branch_name = f"fix/error-{error_id}-{ts}"
 
         # 6. PR 본문 생성
-        pr_body = build_pr_body(report, result, original_files={**error_files, **context_files})
+        pr_body = build_pr_body(report, result, original_files=all_files)
 
         # 7. GitHub PR 생성 (네트워크 호출 — executor 사용)
         try:
@@ -120,7 +199,7 @@ async def process_error(report: ErrorReport) -> None:
                 None,
                 partial(
                     create_pull_request,
-                    files=result["files"],
+                    files=applied,
                     summary=summary,
                     pr_body=pr_body,
                     branch_name=branch_name,

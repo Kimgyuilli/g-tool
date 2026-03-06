@@ -2,6 +2,37 @@
 
 > v1 (Phase 0~5) 기록 아카이브: [PROGRESS_V1.md](./PROGRESS_V1.md)
 
+## 2026-03-06 — agent (Phase 21: Error-Bot AI 분석 품질 개선)
+### 완료한 작업
+- `bot/app/services/ai_provider.py`: 모델 `gpt-4o-mini` → `gpt-4o`, `max_tokens` 4096 → 16384
+- `bot/app/services/ai_service.py`: 스키마/프롬프트 전면 개편
+  - RESPONSE_SCHEMA: `files` → `changes` (original/modified 쌍), `should_fix`/`skip_reason` 추가
+  - SYSTEM_PROMPT: diff 기반 규칙 추가 (파일 전체 재작성 금지, 불필요한 수정 방지)
+  - USER_PROMPT_TEMPLATE: should_fix 지시 + 최소 범위 변경 지시
+  - `validate_ai_result`: files → changes 필드 검증으로 변경
+- `bot/app/pipeline.py`: 검증 강화
+  - `apply_changes()`: original→modified 치환 함수 추가 (원본에서 매칭 후 교체)
+  - `validate_changes()`: 과도한 삭제 차단 (삭제 > 추가×3, 원본 50% 이상 삭제)
+  - `should_fix=false` 시 PR 생성 건너뛰기 (Discord에 분석 결과만 알림)
+  - 적용된 파일(applied)을 GitHub에 전달하도록 변경
+- `bot/app/services/pr_builder.py`: changes 형식 지원 (build_diff에서 original→modified 적용 후 diff 계산)
+- `bot/tests/test_ai_service.py`: 새 스키마 반영 + should_fix=false 테스트 추가
+- `bot/tests/test_pipeline.py`: 전면 재작성 — apply_changes, validate_changes, should_fix 테스트 추가
+- `bot/tests/conftest.py`: 새 테스트 display names 추가
+
+### 검증
+- `uv run ruff check .` — All checks passed
+- `uv run pytest tests/ -v` — **52 passed**
+
+### 다음 할 일
+- 커밋 + PR 생성
+- 배포 후 통합 테스트 (test-webhook → PR 생성 확인)
+
+### 이슈/참고
+- gpt-4o는 gpt-4o-mini 대비 비용 증가하지만 코드 추론 품질 대폭 개선
+- diff 기반 적용으로 AI가 파일 전체를 재작성하는 문제 해결
+- validate_changes로 대규모 코드 삭제 차단 (PR #14 재발 방지)
+
 ## 2026-03-06 — agent (Phase 20: 환경변수 관리 개선)
 ### 완료한 작업
 - `deploy.yml`: GitHub Secrets → .env 파일 자동 생성 (appleboy/ssh-action `envs` 파라미터 활용)

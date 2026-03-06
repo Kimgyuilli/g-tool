@@ -304,3 +304,16 @@
 | 태스크 | 담당 | 상태 | 의존 | 비고 |
 |--------|------|------|------|------|
 | deploy.yml에서 GitHub Secrets로 .env 파일 자동 생성 | agent | done | — | backend/.env, bot/.env, .env.production |
+
+## Phase 21: Error-Bot AI 분석 품질 개선
+
+> PR #14에서 드러난 문제 해결: AI가 파일 전체 재작성, gpt-4o-mini 코드 추론 부족, 불필요한 수정, 검증 로직 부재
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| 모델 gpt-4o-mini → gpt-4o, max_tokens 증가 | agent | done | — | ai_provider.py |
+| 프롬프트/스키마 전면 개편 (diff 기반 + should_fix) | agent | done | — | ai_service.py |
+| diff 적용 로직 + 검증 강화 | agent | done | 스키마 | pipeline.py |
+| PR builder changes 형식 지원 | agent | done | 스키마 | pr_builder.py |
+| 테스트 업데이트 | agent | done | 위 전체 | test_ai_service, test_pipeline |
+| 검증: lint + 테스트 | agent | done | 테스트 | ruff + pytest 52 passed |

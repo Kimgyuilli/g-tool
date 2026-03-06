@@ -28,16 +28,15 @@ async def receive_error(report: ErrorReport):
 async def test_webhook():
     now = datetime.now(timezone.utc)
     sample = ErrorReport(
-        errorType="AttributeError",
-        errorMessage=f"'NoneType' object has no attribute 'id' (test-{now.strftime('%H%M%S')})",
+        errorType="KeyError",
+        errorMessage=f"'subject' (test-{now.strftime('%H%M%S')})",
         stackTrace=(
             'Traceback (most recent call last):\n'
-            '  File "backend/app/mail/services/gmail.py", line 45, in sync_gmail\n'
-            '    user_id = current_user.id\n'
-            '  File "backend/app/mail/routers/inbox.py", line 30, in get_inbox\n'
-            '    messages = await gmail_service.sync_gmail(user)\n'
+            '  File "backend/app/mail/services/gmail.py", line 208, in _parse_message\n'
+            '    "external_id": raw["id"],\n'
+            'KeyError: \'id\'\n'
         ),
-        requestUrl="GET /api/mails",
+        requestUrl="GET /api/gmail/sync",
         timestamp=now.isoformat(),
     )
     task = asyncio.create_task(process_error(sample))

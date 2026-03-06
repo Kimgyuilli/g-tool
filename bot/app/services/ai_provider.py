@@ -25,8 +25,8 @@ def call_ai(
 ) -> str:
     """OpenAI API를 호출하고 텍스트 응답을 반환한다."""
     kwargs: dict = {
-        "model": "gpt-4o-mini",
-        "max_tokens": 4096,
+        "model": "gpt-4o",
+        "max_tokens": 16384,
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": user_prompt},
