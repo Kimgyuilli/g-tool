@@ -349,3 +349,11 @@
 | cryptography 의존성 + Fernet 유틸리티 | agent | done | — | pyproject.toml, security.py |
 | 토큰 저장/읽기 지점 암호화 적용 | agent | done | Fernet | auth, naver, background_sync |
 | 마이그레이션 스크립트 | agent | done | Fernet | migrate_encrypt.py |
+
+## Phase 23: 프로젝트 마무리 — README + 문서 정리
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| 루트 README.md 작성 | agent | done | — | 프로젝트 소개, 기능, 아키텍처, 실행법 |
+| frontend/README.md 삭제 | agent | done | — | Next.js 기본 템플릿 제거 |
+| PLAN/PROGRESS 아카이빙 | — | done | — | 현재 상태 유지 (개발 과정 증빙) |

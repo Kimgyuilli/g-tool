@@ -2,6 +2,16 @@
 
 > v1 (Phase 0~5) 기록 아카이브: [PROGRESS_V1.md](./PROGRESS_V1.md)
 
+## 2026-03-07 — agent (Phase 23: 프로젝트 마무리)
+### 완료한 작업
+- 루트 `README.md` 신규 작성: 프로젝트 소개, 주요 기능, 기술 스택 배지, 시스템 아키텍처 다이어그램, 프로젝트 구조, 로컬 실행 방법, 배포 안내, 프로젝트 규모
+- `frontend/README.md` 삭제 (Next.js 기본 템플릿 → 루트 README로 대체)
+- PLAN.md에 Phase 23 추가
+### 다음 할 일
+- 없음 (프로젝트 마무리 완료)
+### 이슈/참고
+- PLAN.md, PROGRESS.md, PLAN_V1.md, PROGRESS_V1.md, CLAUDE.md는 개발 과정 증빙으로 그대로 유지
+
 ## 2026-03-07 — agent (Phase 22: 보안 개선)
 ### 완료한 작업
 **22-1. 인프라 보안**
