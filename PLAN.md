@@ -318,7 +318,7 @@
 | 테스트 업데이트 | agent | done | 위 전체 | test_ai_service, test_pipeline |
 | 검증: lint + 테스트 | agent | done | 테스트 | ruff + pytest 52 passed |
 
-## Phase 22: 보안 개선
+## Phase 22: 보안 개선 — [PR #19](https://github.com/Kimgyuilli/g-tool/pull/19)
 
 > URL query parameter `user_id`를 JWT 쿠키 인증으로 교체, DB 토큰 암호화, Caddy 보안 헤더, error-bot 볼륨 마운트 축소
 
