@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     project_root: str = "backend/app"
     discord_webhook_url: str
     bot_port: int = 8001
-    import_depth: int = 1
+    import_depth: int = 2
     ai_provider: str = "openai"
     local_source_path: str = ""
 
