@@ -12,7 +12,7 @@ from app.mail.models import User
 
 
 async def get_current_user(
-    user_id: int = Query(...),
+    user_id: int = Query(default=None)
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """Validate and return current user by user_id query parameter."""
