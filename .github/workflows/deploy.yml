@@ -17,8 +17,33 @@ jobs:
           host: ${{ secrets.ORACLE_HOST }}
           username: ${{ secrets.ORACLE_USERNAME }}
           key: ${{ secrets.ORACLE_SSH_KEY }}
+          envs: DOMAIN,OPENAI_API_KEY,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,BOT_GITHUB_TOKEN,BOT_GITHUB_REPO,DISCORD_WEBHOOK_URL
           script: |
             cd ~/g-tool
             git pull origin main
-            [ -f .env.production ] || (echo "Error: .env.production not found" && exit 1)
+
+            # .env.production (docker-compose 변수)
+            cat > .env.production << EOF
+            DOMAIN=${DOMAIN}
+            EOF
+
+            # backend/.env
+            cat > backend/.env << EOF
+            OPENAI_API_KEY=${OPENAI_API_KEY}
+            GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+            GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+            EOF
+
+            # bot/.env
+            cat > bot/.env << EOF
+            OPENAI_API_KEY=${OPENAI_API_KEY}
+            GITHUB_TOKEN=${BOT_GITHUB_TOKEN}
+            GITHUB_REPO=${BOT_GITHUB_REPO}
+            GITHUB_BASE_BRANCH=main
+            PROJECT_ROOT=backend/app
+            DISCORD_WEBHOOK_URL=${DISCORD_WEBHOOK_URL}
+            IMPORT_DEPTH=2
+            LOCAL_SOURCE_PATH=/workspace/source
+            EOF
+
             docker compose --env-file .env.production up -d --build

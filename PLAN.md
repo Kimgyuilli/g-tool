@@ -296,3 +296,11 @@
 | 태스크 | 담당 | 상태 | 의존 | 비고 |
 |--------|------|------|------|------|
 | 테스트 수정 + lint 검증 | agent | done | 19-1,19-2 | 58 passed, ruff clean |
+
+## Phase 20: 환경변수 관리 개선 — GitHub Secrets 기반
+
+> backend/.env, bot/.env, .env.production을 서버에서 수동 관리하는 대신, GitHub Secrets에서 deploy 시 자동 생성
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| deploy.yml에서 GitHub Secrets로 .env 파일 자동 생성 | agent | done | — | backend/.env, bot/.env, .env.production |

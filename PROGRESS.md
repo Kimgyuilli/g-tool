@@ -2,6 +2,23 @@
 
 > v1 (Phase 0~5) 기록 아카이브: [PROGRESS_V1.md](./PROGRESS_V1.md)
 
+## 2026-03-06 — agent (Phase 20: 환경변수 관리 개선)
+### 완료한 작업
+- `deploy.yml`: GitHub Secrets → .env 파일 자동 생성 (appleboy/ssh-action `envs` 파라미터 활용)
+  - `.env.production` (DOMAIN)
+  - `backend/.env` (OPENAI_API_KEY, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET)
+  - `bot/.env` (OPENAI_API_KEY, GITHUB_TOKEN, GITHUB_REPO 등)
+- `.env.production.example`: 필요한 GitHub Secrets 목록 문서화
+- `PLAN.md`: Phase 20 추가
+
+### 다음 할 일
+- GitHub Settings > Secrets에 7개 시크릿 등록 (DOMAIN, OPENAI_API_KEY, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, BOT_GITHUB_TOKEN, BOT_GITHUB_REPO, DISCORD_WEBHOOK_URL)
+- 서버의 기존 수동 .env 파일은 첫 배포 성공 후 삭제 가능
+
+### 이슈/참고
+- bot/.env의 GITHUB_BASE_BRANCH, PROJECT_ROOT, IMPORT_DEPTH, LOCAL_SOURCE_PATH는 변경 빈도가 낮아 deploy.yml에 하드코딩
+- 기존 서버 .env 파일이 있어도 deploy 시 덮어쓰므로 충돌 없음
+
 ## 2026-03-06 — agent (Phase 19: 500 Error Auto-Fix Bot)
 ### 완료한 작업
 **19-1. error-bot 코드 이식 (bot/ 디렉토리)**
