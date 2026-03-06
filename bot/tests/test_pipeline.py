@@ -8,12 +8,6 @@ from app.services.ai_service import validate_ai_result
 from app.services.pr_builder import build_diff
 
 
-@pytest.fixture(autouse=True)
-def _mock_emit():
-    with patch("app.pipeline.emit", new_callable=AsyncMock):
-        yield
-
-
 FILE_PATH = "backend/app/mail/services/gmail.py"
 
 

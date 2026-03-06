@@ -42,16 +42,6 @@ _DISPLAY_NAMES = {
     "test_pr_body_contains_diff_section": "에러 처리 - PR 본문에 diff 섹션 포함",
     "test_pr_body_contains_new_sections": "에러 처리 - PR 본문에 근본 원인/수정 내용 포함",
     "test_process_error_pr_failure_sends_failure_alert": "에러 처리 - PR 생성 실패 시 실패 알림 전송",
-    # test_event_store
-    "test_emit_stores_event": "이벤트 저장소 - 이벤트 저장",
-    "test_emit_updates_same_error_id": "이벤트 저장소 - 같은 에러 ID 업데이트",
-    "test_history_max_50": "이벤트 저장소 - 히스토리 최대 50개 유지",
-    "test_subscribe_receives_events": "이벤트 저장소 - 구독자 이벤트 수신",
-    "test_get_history_returns_newest_first": "이벤트 저장소 - 최신순 히스토리 반환",
-    "test_data_merge_across_events": "이벤트 저장소 - 이벤트 데이터 병합",
-    "test_data_not_overwritten_when_none": "이벤트 저장소 - None이면 데이터 덮어쓰지 않음",
-    "test_get_error_found": "이벤트 저장소 - 에러 조회 성공",
-    "test_get_error_not_found": "이벤트 저장소 - 에러 조회 실패 시 None",
     # test_github_service
     "test_fetch_file_content_returns_decoded": "GitHub - 파일 내용 디코딩 반환",
     "test_fetch_file_content_returns_none_on_error": "GitHub - 파일 조회 실패 시 None 반환",
