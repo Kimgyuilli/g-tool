@@ -1,5 +1,3 @@
-"""Core dependency: get_current_user."""
-
 from __future__ import annotations
 
 from fastapi import Depends, Query
