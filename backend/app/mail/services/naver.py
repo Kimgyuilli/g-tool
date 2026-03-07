@@ -10,6 +10,10 @@ from contextlib import contextmanager
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+from app.core.exceptions import ExternalServiceException, IMAPAuthenticationException
+from app.core.security import decrypt_value
+from app.mail.models import Mail, SyncState
+
 if TYPE_CHECKING:
     from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -343,10 +347,6 @@ def _parse_date(date_str: str) -> datetime | None:
 # ---------------------------------------------------------------------------
 
 
-from app.core.security import decrypt_value
-from app.mail.models import Mail, SyncState
-
-
 async def sync_naver_messages(
     db: AsyncSession,
     user: User,
@@ -370,9 +370,6 @@ async def sync_naver_messages(
     since_uid = sync_state.last_uid if sync_state else None
 
     # Fetch messages from IMAP
-    import imaplib
-    from app.core.exceptions import ExternalServiceException, IMAPAuthenticationException
-
     try:
         result = await fetch_messages(
             host,
