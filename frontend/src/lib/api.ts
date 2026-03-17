@@ -16,6 +16,10 @@ export async function apiFetch<T>(
   });
 
   if (!response.ok) {
+    if (response.status === 401 && !endpoint.startsWith("/auth/me")) {
+      window.location.href = "/";
+      return new Promise(() => {}) as T;
+    }
     throw new Error(`API Error: ${response.status} ${response.statusText}`);
   }
 
