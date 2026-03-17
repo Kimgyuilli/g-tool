@@ -31,7 +31,7 @@ class Settings(BaseSettings):
 
     # JWT
     secret_key: str = ""
-    jwt_expire_minutes: int = 1440  # 24시간
+    jwt_expire_minutes: int = 10080  # 7일
 
     # Error Bot
     error_bot_url: str = ""
