@@ -38,3 +38,6 @@ infra/
 *.tfstate
 *.tfstate.backup
 *.tfvars
+
+.mcp.json
+.agent-board/
