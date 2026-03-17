@@ -1,6 +1,9 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from datetime import UTC, datetime
+
+import jwt as pyjwt
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -79,10 +82,38 @@ async def callback(
 
 
 @router.get("/me")
-async def me(user: User = Depends(get_current_user)):
-    """Get current user info."""
+async def me(
+    request: Request,
+    response: Response,
+    user: User = Depends(get_current_user),
+):
+    """Get current user info. Renew token if past half-life (sliding session)."""
     has_google = bool(user.google_oauth_token)
     has_naver = bool(user.naver_email)
+
+    # Sliding session: renew if remaining time < half of total expiry
+    token = request.cookies.get("session_token")
+    if token:
+        try:
+            payload = pyjwt.decode(
+                token, settings.secret_key, algorithms=["HS256"]
+            )
+            exp = datetime.fromtimestamp(payload["exp"], tz=UTC)
+            remaining = (exp - datetime.now(UTC)).total_seconds()
+            half_life = settings.jwt_expire_minutes * 60 / 2
+            if remaining < half_life:
+                new_token = create_access_token(user.id)
+                response.set_cookie(
+                    key="session_token",
+                    value=new_token,
+                    httponly=True,
+                    secure=True,
+                    samesite="lax",
+                    max_age=settings.jwt_expire_minutes * 60,
+                    path="/",
+                )
+        except pyjwt.InvalidTokenError:
+            pass
 
     return {
         "user_id": user.id,
