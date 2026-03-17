@@ -2,6 +2,20 @@
 
 > v1 (Phase 0~5) 기록 아카이브: [PROGRESS_V1.md](./PROGRESS_V1.md)
 
+## 2026-03-17 — agent (Phase 24: 세션 만료 개선)
+### 완료한 작업
+- `backend/app/config.py`: JWT 만료 시간 24시간(1440분) → 7일(10080분)
+- `frontend/src/lib/api.ts`: 401 응답 시 `/`로 리다이렉트 (`/auth/me` 요청은 제외하여 무한 리다이렉트 방지)
+- `backend/app/auth/router.py`: `/auth/me` 엔드포인트에 sliding session 구현 — 토큰 남은 시간이 절반(3.5일) 미만이면 새 토큰으로 쿠키 갱신
+### 검증
+- `uv run ruff check .` — All checks passed
+- `uv run pytest tests/ -v` — 24 passed
+### 다음 할 일
+- 커밋 + PR 생성
+### 이슈/참고
+- 쿠키 max_age는 이미 `jwt_expire_minutes * 60`을 사용하므로 config 변경만으로 자동 반영
+- sliding session 덕분에 활발히 사용 중이면 사실상 세션 만료 없음
+
 ## 2026-03-07 — agent (Phase 23: 프로젝트 마무리)
 ### 완료한 작업
 - 루트 `README.md` 신규 작성: 프로젝트 소개, 주요 기능, 기술 스택 배지, 시스템 아키텍처 다이어그램, 프로젝트 구조, 로컬 실행 방법, 배포 안내, 프로젝트 규모

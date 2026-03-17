@@ -357,3 +357,13 @@
 | 루트 README.md 작성 | agent | done | — | 프로젝트 소개, 기능, 아키텍처, 실행법 |
 | frontend/README.md 삭제 | agent | done | — | Next.js 기본 템플릿 제거 |
 | PLAN/PROGRESS 아카이빙 | — | done | — | 현재 상태 유지 (개발 과정 증빙) |
+
+## Phase 24: 세션 만료 개선
+
+> JWT 만료 시간 연장 + 401 리다이렉트 + sliding session
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| JWT 만료 시간 24시간 → 7일 | agent | done | — | config.py |
+| apiFetch 401 인터셉터 추가 | agent | done | — | api.ts, /auth/me 제외 |
+| /auth/me sliding session | agent | done | — | 남은 시간 < 절반 시 토큰 갱신 |
