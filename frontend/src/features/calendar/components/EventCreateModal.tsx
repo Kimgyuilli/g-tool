@@ -43,7 +43,8 @@ export function EventCreateModal({
   // 모달이 열릴 때 defaultDate로 날짜 초기화
   useEffect(() => {
     if (open) {
-      const dateStr = (defaultDate || new Date()).toISOString().slice(0, 10);
+      const d = defaultDate || new Date();
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
       setStartDate(dateStr);
       setEndDate(dateStr);
     }
