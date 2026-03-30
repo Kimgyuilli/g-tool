@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.service import build_credentials
@@ -42,8 +42,12 @@ async def get_google_user(
             await db.commit()
         except Exception as exc:
             logger.warning(f"Google 토큰 갱신 실패 (user={user.id}): {exc}")
-            raise AccountNotConnectedException(
-                "Google (토큰 만료 — 재로그인 필요)"
+            raise HTTPException(
+                status_code=401,
+                detail={
+                    "code": "token_expired",
+                    "message": "Google 토큰이 만료되었습니다. 다시 로그인해주세요.",
+                },
             ) from exc
 
     return user, credentials

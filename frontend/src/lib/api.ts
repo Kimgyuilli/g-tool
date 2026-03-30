@@ -1,3 +1,5 @@
+import { toast } from "sonner";
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -17,6 +19,15 @@ export async function apiFetch<T>(
 
   if (!response.ok) {
     if (response.status === 401 && !endpoint.startsWith("/auth/me")) {
+      // 토큰 만료 여부 확인 후 안내 메시지 표시
+      try {
+        const body = await response.json();
+        if (body?.detail?.code === "token_expired") {
+          toast.warning("세션이 만료되었습니다. 다시 로그인해주세요.");
+        }
+      } catch {
+        // JSON 파싱 실패 시 무시
+      }
       window.location.href = "/";
       return new Promise(() => {}) as T;
     }
