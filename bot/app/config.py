@@ -11,6 +11,7 @@ class Settings(BaseSettings):
     bot_port: int = 8001
     import_depth: int = 2
     local_source_path: str = ""
+    container_workdir: str = "/app"
 
     model_config = {"env_file": ".env"}
 

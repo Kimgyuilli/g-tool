@@ -14,7 +14,7 @@ from app.calendar.router import router as calendar_router
 from app.config import settings
 from app.core.background_sync import sync_all_users
 from app.core.database import Base, engine
-from app.core.error_reporter import ErrorReporterMiddleware
+from app.core.error_reporter import ErrorReporterMiddleware, register_error_handlers
 from app.mail.routers.classify import router as classify_router
 from app.mail.routers.gmail import router as gmail_router
 from app.mail.routers.inbox import router as inbox_router
@@ -63,6 +63,7 @@ app.add_middleware(
 
 if settings.error_bot_url:
     app.add_middleware(ErrorReporterMiddleware)
+    register_error_handlers(app)
 
 
 app.include_router(auth_router)
