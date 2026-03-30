@@ -100,16 +100,19 @@ async def process_error(report: ErrorReport) -> None:
         await send_error_alert(report)
 
         # 2. 스택트레이스 파싱
-        entries = parse_stack_trace(report.stackTrace, settings.project_root)
+        entries = parse_stack_trace(report.stackTrace, settings.project_root, settings.container_workdir)
         if not entries:
             logger.warning("스택트레이스에서 프로젝트 코드를 찾지 못함")
+            await send_failure_alert(report, "스택트레이스에서 프로젝트 코드를 찾지 못함")
             return
 
         # 3. 소스코드 조회 (로컬 파일 읽기 — 빠르므로 executor 불필요)
         file_paths = [e["file"] for e in entries]
         files = read_files(file_paths)
         if not files:
+            reason = f"파일 조회 실패: {', '.join(file_paths[:5])}"
             logger.warning("파일을 조회하지 못함: %s", file_paths)
+            await send_failure_alert(report, reason)
             return
 
         # 3-1. import 기반 관련 파일 추가 fetch (N depth)
@@ -215,5 +218,9 @@ async def process_error(report: ErrorReport) -> None:
         # 8. Discord PR 완료 알림
         await send_pr_alert(pr_url, summary)
 
-    except Exception:
+    except Exception as e:
         logger.exception("에러 처리 중 실패")
+        try:
+            await send_failure_alert(report, f"파이프라인 내부 오류: {e}")
+        except Exception:
+            logger.exception("실패 알림 전송도 실패")
