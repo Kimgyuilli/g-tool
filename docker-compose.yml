@@ -5,7 +5,7 @@ services:
     env_file: ./backend/.env
     environment:
       - FRONTEND_URL=https://${DOMAIN}
-      - GOOGLE_REDIRECT_URI=https://${DOMAIN}/api/auth/callback
+      - GOOGLE_REDIRECT_URI=https://${DOMAIN}/auth/callback
       - DATABASE_URL=sqlite+aiosqlite:///./data/gtool.db
       - ERROR_BOT_URL=http://error-bot:8001
     volumes:
@@ -22,7 +22,7 @@ services:
     build:
       context: ./frontend
       args:
-        NEXT_PUBLIC_API_URL: https://${DOMAIN}/api
+        NEXT_PUBLIC_API_URL: https://${DOMAIN}
     restart: unless-stopped
     expose:
       - "3000"

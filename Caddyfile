@@ -8,7 +8,10 @@
 	}
 
 	handle /api/* {
-		uri strip_prefix /api
+		reverse_proxy backend:8000
+	}
+
+	handle /auth/* {
 		reverse_proxy backend:8000
 	}
 
