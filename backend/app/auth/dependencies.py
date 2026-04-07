@@ -6,6 +6,7 @@ import asyncio
 import logging
 
 from fastapi import Depends, HTTPException
+from google.auth.exceptions import RefreshError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.service import build_credentials
@@ -40,7 +41,7 @@ async def get_google_user(
             await asyncio.to_thread(credentials.refresh, Request())
             user.google_oauth_token = encrypt_value(credentials.token)
             await db.commit()
-        except google.auth.exceptions.RefreshError as exc:
+        except RefreshError as exc:
             logger.warning(f"Google 토큰 갱신 실패 (user={user.id}): {exc}")
             raise HTTPException(
                 status_code=401,
