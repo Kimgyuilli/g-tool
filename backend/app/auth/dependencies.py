@@ -47,7 +47,10 @@ async def get_google_user(
                 status_code=401,
                 detail={
                     "code": "token_expired",
-                    "message": "Google 인증 정보가 만료되었거나 취소되었습니다. 다시 로그인해야 합니다.",
+                    "message": (
+                        "Google 인증 정보가 만료되었거나 취소되었습니다. "
+                        "다시 로그인해야 합니다."
+                    ),
                 },
             ) from exc
 
