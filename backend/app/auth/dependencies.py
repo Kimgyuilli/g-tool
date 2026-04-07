@@ -40,13 +40,13 @@ async def get_google_user(
             await asyncio.to_thread(credentials.refresh, Request())
             user.google_oauth_token = encrypt_value(credentials.token)
             await db.commit()
-        except Exception as exc:
+        except google.auth.exceptions.RefreshError as exc:
             logger.warning(f"Google 토큰 갱신 실패 (user={user.id}): {exc}")
             raise HTTPException(
                 status_code=401,
                 detail={
                     "code": "token_expired",
-                    "message": "Google 토큰이 만료되었습니다. 다시 로그인해주세요.",
+                    "message": "Google 인증 정보가 만료되었거나 취소되었습니다. 다시 로그인해야 합니다.",
                 },
             ) from exc
 
