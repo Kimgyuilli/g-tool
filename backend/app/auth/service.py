@@ -56,15 +56,25 @@ def exchange_code(code: str) -> Credentials:
 
 
 def build_credentials(access_token: str, refresh_token: str) -> Credentials:
-    """Build Credentials from stored tokens."""
+    """Build Credentials from stored tokens.
+
+    Do not force the latest app scopes onto refresh requests. Existing users may
+    hold older refresh tokens from a narrower consent set, and sending the
+    current SCOPES list can trigger invalid_scope during refresh.
+    """
     return Credentials(
         token=access_token,
         refresh_token=refresh_token,
         token_uri="https://oauth2.googleapis.com/token",
         client_id=settings.google_client_id,
         client_secret=settings.google_client_secret,
-        scopes=SCOPES,
     )
+
+
+def is_google_scope_mismatch_error(exc: Exception) -> bool:
+    """Return True when Google refresh failed due to an OAuth scope mismatch."""
+    message = str(exc).lower()
+    return "invalid_scope" in message
 
 
 async def get_user_email(credentials: Credentials) -> str:
