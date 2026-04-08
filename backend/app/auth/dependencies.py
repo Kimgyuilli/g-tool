@@ -9,7 +9,7 @@ from fastapi import Depends, HTTPException
 from google.auth.exceptions import RefreshError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.service import build_credentials
+from app.auth.service import build_credentials, is_google_scope_mismatch_error
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.exceptions import AccountNotConnectedException
@@ -17,6 +17,16 @@ from app.core.security import decrypt_value, encrypt_value
 from app.mail.models import User
 
 logger = logging.getLogger(__name__)
+
+
+async def _disconnect_google_account(
+    user: User,
+    db: AsyncSession,
+) -> None:
+    """Remove stored Google OAuth credentials for the user."""
+    user.google_oauth_token = None
+    user.google_refresh_token = None
+    await db.commit()
 
 
 async def get_google_user(
@@ -43,6 +53,18 @@ async def get_google_user(
             await db.commit()
         except RefreshError as exc:
             logger.warning(f"Google 토큰 갱신 실패 (user={user.id}): {exc}")
+            if is_google_scope_mismatch_error(exc):
+                await _disconnect_google_account(user, db)
+                raise HTTPException(
+                    status_code=401,
+                    detail={
+                        "code": "google_reconnect_required",
+                        "message": (
+                            "Google 권한 구성이 변경되어 계정 재연결이 필요합니다. "
+                            "Google 로그인을 다시 진행해주세요."
+                        ),
+                    },
+                ) from exc
             raise HTTPException(
                 status_code=401,
                 detail={

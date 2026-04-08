@@ -4,10 +4,11 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
+from google.auth.exceptions import RefreshError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.service import build_credentials
+from app.auth.service import build_credentials, is_google_scope_mismatch_error
 from app.config import settings
 from app.core.database import AsyncSessionLocal
 from app.core.security import decrypt_value, encrypt_value
@@ -91,6 +92,13 @@ def _save_mails(
         db.add(mail)
 
 
+async def _disconnect_google_account(user: User, db: AsyncSession) -> None:
+    """Clear stale Google OAuth credentials after an unrecoverable auth error."""
+    user.google_oauth_token = None
+    user.google_refresh_token = None
+    await db.commit()
+
+
 # ---------------------------------------------------------------------------
 # Public sync functions
 # ---------------------------------------------------------------------------
@@ -150,6 +158,19 @@ async def sync_user_gmail(user: User, db: AsyncSession) -> int:
         await db.commit()
         logger.info(f"User {user.id}: Gmail {len(details)}개 메일 동기화 완료")
         return len(details)
+
+    except RefreshError as exc:
+        if is_google_scope_mismatch_error(exc):
+            logger.warning(
+                f"User {user.id}: Google scope mismatch, 연결 해제 후 동기화 중단"
+            )
+            await _disconnect_google_account(user, db)
+            return 0
+        logger.error(
+            f"User {user.id}: Gmail 동기화 실패 — {exc.__class__.__name__}: {exc}"
+        )
+        await db.rollback()
+        return 0
 
     except Exception as exc:
         logger.error(
