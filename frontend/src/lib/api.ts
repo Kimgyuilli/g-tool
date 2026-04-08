@@ -19,10 +19,12 @@ export async function apiFetch<T>(
 
   if (!response.ok) {
     if (response.status === 401 && !endpoint.startsWith("/auth/me")) {
-      // 토큰 만료 여부 확인 후 안내 메시지 표시
+      // 인증 상태에 따라 안내 메시지를 구분한다.
       try {
         const body = await response.json();
-        if (body?.detail?.code === "token_expired") {
+        if (body?.detail?.code === "google_reconnect_required") {
+          toast.warning("Google 권한이 변경되어 다시 연결이 필요합니다.");
+        } else if (body?.detail?.code === "token_expired") {
           toast.warning("세션이 만료되었습니다. 다시 로그인해주세요.");
         }
       } catch {
