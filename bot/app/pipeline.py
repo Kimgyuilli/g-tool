@@ -10,7 +10,18 @@ from app.schemas import ErrorReport
 from app.services.ai_service import analyze_error, validate_ai_result
 from app.services.discord_service import send_error_alert, send_failure_alert, send_pr_alert
 from app.services.file_reader import read_files
-from app.services.github_service import create_pull_request
+from app.services.github_service import (
+    add_issue_comment,
+    create_issue,
+    create_pull_request,
+    find_open_issue_by_key,
+)
+from app.services.issue_builder import (
+    ISSUE_ELIGIBLE_STAGES,
+    FailureStage,
+    build_issue_payload,
+    sanitize_failure_reason,
+)
 from app.services.pr_builder import build_pr_body
 from app.utils.stack_trace_parser import extract_related_imports, parse_stack_trace
 
@@ -89,6 +100,39 @@ def validate_changes(
     return None
 
 
+async def report_failure(
+    report: ErrorReport,
+    stage: FailureStage,
+    reason: str,
+    *,
+    force_fallback: bool = False,
+) -> None:
+    issue_url = None
+    safe_reason = sanitize_failure_reason(reason)
+
+    if settings.issue_enabled and stage in ISSUE_ELIGIBLE_STAGES:
+        loop = asyncio.get_running_loop()
+        payload = build_issue_payload(
+            report,
+            stage,
+            safe_reason,
+            force_fallback=force_fallback,
+        )
+
+        def _sync_report_issue() -> str | None:
+            issue = find_open_issue_by_key(payload["dedup_key"], payload["labels"])
+            if issue is not None:
+                return add_issue_comment(issue, payload["comment"])
+            return create_issue(payload["title"], payload["body"], payload["labels"])
+
+        try:
+            issue_url = await loop.run_in_executor(None, _sync_report_issue)
+        except Exception:
+            logger.exception("Issue 생성/업데이트 실패")
+
+    await send_failure_alert(report, safe_reason, issue_url)
+
+
 async def process_error(report: ErrorReport) -> None:
     try:
         # 0. 중복 에러 필터링
@@ -103,7 +147,11 @@ async def process_error(report: ErrorReport) -> None:
         entries = parse_stack_trace(report.stackTrace, settings.project_root, settings.container_workdir)
         if not entries:
             logger.warning("스택트레이스에서 프로젝트 코드를 찾지 못함")
-            await send_failure_alert(report, "스택트레이스에서 프로젝트 코드를 찾지 못함")
+            await report_failure(
+                report,
+                FailureStage.STACK_TRACE_PARSE_FAILED,
+                "스택트레이스에서 프로젝트 코드를 찾지 못함",
+            )
             return
 
         # 3. 소스코드 조회 (로컬 파일 읽기 — 빠르므로 executor 불필요)
@@ -112,7 +160,7 @@ async def process_error(report: ErrorReport) -> None:
         if not files:
             reason = f"파일 조회 실패: {', '.join(file_paths[:5])}"
             logger.warning("파일을 조회하지 못함: %s", file_paths)
-            await send_failure_alert(report, reason)
+            await report_failure(report, FailureStage.SOURCE_FILE_READ_FAILED, reason)
             return
 
         # 3-1. import 기반 관련 파일 추가 fetch (N depth)
@@ -145,14 +193,18 @@ async def process_error(report: ErrorReport) -> None:
         )
         if not result:
             logger.warning("AI 분석 결과 없음")
-            await send_failure_alert(report, "AI 분석 실패")
+            await report_failure(report, FailureStage.AI_ANALYSIS_FAILED, "AI 분석 실패")
             return
 
         # 4-1. should_fix 체크 — 수정 불필요 시 분석 결과만 알리고 종료
         if not result.get("should_fix", True):
             skip_reason = result.get("skip_reason", "수정 불필요")
             logger.info("AI 판단: 수정 불필요 — %s", skip_reason)
-            await send_failure_alert(report, f"수정 불필요: {skip_reason}")
+            await report_failure(
+                report,
+                FailureStage.FIX_SKIPPED,
+                f"수정 불필요: {skip_reason}",
+            )
             return
 
         # 4-2. no-op 변경 필터링 (original == modified)
@@ -166,21 +218,33 @@ async def process_error(report: ErrorReport) -> None:
         validation_error = validate_ai_result(result, known_files)
         if validation_error:
             logger.warning("AI 응답 검증 실패: %s", validation_error)
-            await send_failure_alert(report, f"AI 응답 검증 실패: {validation_error}")
+            await report_failure(
+                report,
+                FailureStage.AI_VALIDATION_FAILED,
+                f"AI 응답 검증 실패: {validation_error}",
+            )
             return
 
         # 4-4. diff 적용 (original → modified 치환)
         applied = apply_changes(all_files, result["changes"])
         if isinstance(applied, str):
             logger.warning("diff 적용 실패: %s", applied)
-            await send_failure_alert(report, f"diff 적용 실패: {applied}")
+            await report_failure(
+                report,
+                FailureStage.DIFF_APPLY_FAILED,
+                f"diff 적용 실패: {applied}",
+            )
             return
 
         # 4-5. 변경 안전성 검증
         change_error = validate_changes(all_files, applied)
         if change_error:
             logger.warning("변경 검증 실패: %s", change_error)
-            await send_failure_alert(report, f"변경 검증 실패: {change_error}")
+            await report_failure(
+                report,
+                FailureStage.CHANGE_VALIDATION_FAILED,
+                f"변경 검증 실패: {change_error}",
+            )
             return
 
         summary = result.get("summary", "에러 자동 수정")
@@ -210,7 +274,11 @@ async def process_error(report: ErrorReport) -> None:
             )
         except Exception as e:
             logger.exception("PR 생성 실패")
-            await send_failure_alert(report, f"PR 생성 실패: {e}")
+            await report_failure(
+                report,
+                FailureStage.PULL_REQUEST_FAILED,
+                f"PR 생성 실패: {e}",
+            )
             return
 
         logger.info("PR 생성 완료: %s", pr_url)
@@ -221,6 +289,11 @@ async def process_error(report: ErrorReport) -> None:
     except Exception as e:
         logger.exception("에러 처리 중 실패")
         try:
-            await send_failure_alert(report, f"파이프라인 내부 오류: {e}")
+            await report_failure(
+                report,
+                FailureStage.PIPELINE_INTERNAL_ERROR,
+                f"파이프라인 내부 오류: {e}",
+                force_fallback=True,
+            )
         except Exception:
             logger.exception("실패 알림 전송도 실패")

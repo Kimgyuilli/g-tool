@@ -1,4 +1,5 @@
 import logging
+from datetime import UTC, datetime, timedelta
 
 from github import Github, GithubException, InputGitTreeElement
 from tenacity import retry, stop_after_attempt, wait_fixed
@@ -26,6 +27,39 @@ def health_check() -> dict:
         return {"status": "ok"}
     except Exception as e:
         return {"status": "error", "detail": str(e)}
+
+
+def _issue_has_dedup_key(issue, dedup_key: str) -> bool:
+    return issue.title.startswith(f"[{dedup_key}]")
+
+
+def find_open_issue_by_key(dedup_key: str, labels: list[str]):
+    repo = _get_repo()
+    cutoff = datetime.now(UTC) - timedelta(hours=settings.issue_dedup_window_hours)
+    issues = repo.get_issues(state="open", labels=labels)
+    checked = 0
+
+    for issue in issues:
+        checked += 1
+        if checked > 50:
+            break
+        created_at = getattr(issue, "created_at", None)
+        if created_at and created_at.replace(tzinfo=UTC) < cutoff:
+            continue
+        if _issue_has_dedup_key(issue, dedup_key):
+            return issue
+    return None
+
+
+def create_issue(title: str, body: str, labels: list[str]) -> str:
+    repo = _get_repo()
+    issue = repo.create_issue(title=title, body=body, labels=labels)
+    return issue.html_url
+
+
+def add_issue_comment(issue, body: str) -> str:
+    issue.create_comment(body)
+    return issue.html_url
 
 
 @retry(stop=stop_after_attempt(2), wait=wait_fixed(2), reraise=True)

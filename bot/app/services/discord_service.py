@@ -70,15 +70,19 @@ async def send_pr_alert(pr_url: str, summary: str) -> None:
 
 
 @retry(stop=stop_after_attempt(2), wait=wait_fixed(1), reraise=True)
-async def send_failure_alert(report, reason: str) -> None:
+async def send_failure_alert(report, reason: str, issue_url: str | None = None) -> None:
+    fields = [
+        {"name": "에러 타입", "value": report.errorType, "inline": True},
+        {"name": "요청", "value": report.requestUrl, "inline": True},
+        {"name": "메시지", "value": report.errorMessage[:1024]},
+        {"name": "실패 사유", "value": reason[:1024]},
+    ]
+    if issue_url:
+        fields.append({"name": "Issue", "value": issue_url})
+
     embed = {
         "title": "\u26a0\ufe0f 에러 자동 수정 실패",
         "color": 0xFFA500,
-        "fields": [
-            {"name": "에러 타입", "value": report.errorType, "inline": True},
-            {"name": "요청", "value": report.requestUrl, "inline": True},
-            {"name": "메시지", "value": report.errorMessage[:1024]},
-            {"name": "실패 사유", "value": reason[:1024]},
-        ],
+        "fields": fields,
     }
     await _post_webhook({"embeds": [embed]})
