@@ -148,3 +148,62 @@ async def test_sync_gmail_returns_401_on_scope_mismatch(
         assert refreshed is not None
         assert refreshed.google_oauth_token is None
         assert refreshed.google_refresh_token is None
+
+
+@pytest.mark.asyncio
+async def test_sync_all_gmail_returns_401_on_refresh_error(
+    client: AsyncClient, sample_user, monkeypatch
+):
+    """POST /sync/full도 RefreshError를 401로 변환해야 한다."""
+    _patch_google_dependency(monkeypatch)
+
+    async def fake_sync_all(*_args, **_kwargs):
+        raise RefreshError("Token has been expired or revoked")
+
+    monkeypatch.setattr(
+        "app.mail.routers.gmail.sync_all_gmail_messages", fake_sync_all
+    )
+
+    response = await client.post(
+        "/api/gmail/sync/full", headers=auth_cookie(sample_user.id)
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"]["code"] == "token_expired"
+
+
+@pytest.mark.asyncio
+async def test_apply_labels_returns_401_on_scope_mismatch(
+    client: AsyncClient,
+    sample_user,
+    sample_mails,
+    sample_classification,
+    monkeypatch,
+):
+    """POST /apply-labels도 invalid_scope 시 reconnect + disconnect를 반환해야 한다."""
+    _patch_google_dependency(monkeypatch)
+
+    async def fake_apply_labels(*_args, **_kwargs):
+        raise RefreshError(
+            "('invalid_scope: Bad Request', {'error': 'invalid_scope'})"
+        )
+
+    monkeypatch.setattr(
+        "app.mail.routers.gmail.apply_classification_labels_to_gmail",
+        fake_apply_labels,
+    )
+
+    response = await client.post(
+        "/api/gmail/apply-labels",
+        headers=auth_cookie(sample_user.id),
+        json={"mail_ids": [sample_mails["gmail1"].id]},
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"]["code"] == "google_reconnect_required"
+
+    async with TestingSessionLocal() as verify:
+        refreshed = await verify.scalar(
+            select(User).where(User.id == sample_user.id)
+        )
+        assert refreshed is not None
+        assert refreshed.google_oauth_token is None
+        assert refreshed.google_refresh_token is None
