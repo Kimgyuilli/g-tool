@@ -2,6 +2,53 @@
 
 > v1 (Phase 0~5) 기록 아카이브: [PROGRESS_V1.md](./PROGRESS_V1.md)
 
+## 2026-04-17 — backend-dev (Phase 26 구현 + 보안 리뷰 반영)
+
+### 완료한 작업
+- `bot/app/config.py`: Issue 리포트 제어용 설정 추가
+  - `issue_enabled`
+  - `issue_labels`
+  - `issue_dedup_window_hours`
+- `bot/app/services/sanitizer.py` **신규**: Bearer/Authorization/Cookie/email/Google OAuth 토큰 패턴 마스킹 + 길이 제한용 `sanitize_excerpt`
+- `bot/app/services/issue_builder.py` **신규**: `FailureStage` enum, dedup key 생성, GitHub Issue title/body/comment payload 조립
+- `bot/app/services/github_service.py`: GitHub Issue 조회/생성/comment helper 추가
+  - `find_open_issue_by_key`
+  - `create_issue`
+  - `add_issue_comment`
+- `bot/app/pipeline.py`: `report_failure()` 도입
+  - Stage 3~9 실패 경로를 공통 함수로 통합
+  - open issue dedup hit 시 새 Issue 대신 comment 추가
+  - stage 1~2는 Discord only 유지
+  - 최상위 `except`는 `pipeline_internal_error` + sanitize fallback 사용
+- `bot/app/services/discord_service.py`: Discord 전송 경로 sanitize 보강
+  - `send_error_alert()`와 `send_failure_alert()` 모두 `errorType`, `requestUrl`, `errorMessage`, `reason`, `issue_url`, `timestamp`를 sanitize 후 embed 생성
+  - 리뷰 지적이었던 “Issue는 sanitize되지만 Discord는 원문 노출 가능” 경로 제거
+- 테스트 추가/확장
+  - `bot/tests/test_sanitizer.py` **신규**
+  - `bot/tests/test_issue_builder.py` **신규**
+  - `bot/tests/test_github_service.py` 확장
+  - `bot/tests/test_pipeline.py` 확장
+  - `bot/tests/test_discord_service.py` 확장: Discord payload에 민감정보가 남지 않는지 회귀 테스트 추가
+
+### 검증
+- `cd bot && uv run pytest tests/test_sanitizer.py tests/test_issue_builder.py tests/test_discord_service.py tests/test_github_service.py tests/test_pipeline.py` — 43 passed
+- `cd bot && uv run pytest tests` — 67 passed
+
+### 커밋
+- `a2fd78c` `docs: expand phase 26 implementation plan`
+- `cab6f81` `feat: add issue reporting for bot failures`
+
+### 다음 할 일
+- `/api/test-webhook` 수동 시나리오로 Discord/Issue 동작 확인
+- `deploy.yml`에 `ISSUE_ENABLED`, `ISSUE_LABELS`, `ISSUE_DEDUP_WINDOW_HOURS`를 실제로 노출할지 판단
+- 필요 시 `bot/uv.lock`의 `requires-python >=3.13` 변경을 별도 커밋 또는 제외 처리
+
+### 이슈/참고
+- 리뷰로 확인된 보안 이슈: 초기 구현에서는 Discord embed가 `report` 원문 필드를 사용하고 있어 sanitize 요구사항과 불일치했음. 현재는 Discord/GitHub 모두 sanitize 후 진입하도록 수정 완료
+- dedup 범위는 `sha256(errorType + errorMessage + stage)[:10]` + open issue 최근 50개 + 24시간 윈도우
+- 아직 로컬 수동 검증과 deploy env 반영 여부는 미완료이므로 Phase 26은 BOT-9만 pending 상태
+- `bot/uv.lock`은 테스트 실행 중 `requires-python`이 `>=3.13`으로 갱신된 부수 변경이며, 기능 구현과는 별개로 판단 필요
+
 ## 2026-04-17 — backend-dev (Phase 25 구현 완료)
 
 ### 완료한 작업
