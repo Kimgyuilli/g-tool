@@ -417,6 +417,152 @@
 | BOT-8: 테스트 | backend-dev | pending | BOT-6, BOT-7 | pipeline 분기별 Issue 호출 검증 + Discord sanitize 회귀 테스트 명시 |
 | BOT-9: 로컬 검증 + deploy.yml env 추가 여부 판단 | backend-dev | pending | BOT-8 | /api/test-webhook 시나리오 |
 
+### Phase 26 구현 계획 구체화
+
+> 현재 `bot/app/pipeline.py` 기준 실패 지점이 흩어져 있으므로, 먼저 "실패 리포트 데이터 계약"을 고정한 뒤 `pipeline.py`의 모든 후반부 실패 경로를 `report_failure(...)` 하나로 모은다. Stage 1~2(스택 파싱/파일 조회)는 Discord only, Stage 3~9(AI 분석 이후)는 Discord + GitHub Issue 대상으로 분리한다.
+
+#### 26-1. 실패 단계(stage) 정의 고정
+
+| stage | 현재 pipeline 위치 | Issue 생성 | 설명 |
+|------|-------------------|-----------|------|
+| `stack_trace_parse_failed` | entries 비어 있음 | no | 프로젝트 코드 위치를 못 찾은 경우 |
+| `source_file_read_failed` | files 비어 있음 | no | 로컬 소스 읽기 실패 |
+| `ai_analysis_failed` | `analyze_error()` 결과 없음 | yes | AI 응답 자체 없음 |
+| `fix_skipped` | `should_fix == false` | yes | AI가 수정 불필요 판단 |
+| `ai_validation_failed` | `validate_ai_result()` 실패 | yes | schema/known_files 검증 실패 |
+| `diff_apply_failed` | `apply_changes()` 실패 | yes | original 블록 불일치 등 |
+| `change_validation_failed` | `validate_changes()` 실패 | yes | 과도한 삭제 등 안전성 검증 실패 |
+| `pull_request_failed` | `create_pull_request()` 예외 | yes | GitHub PR 생성 실패 |
+| `pipeline_internal_error` | 최상위 `except` | yes | 위 stage 분류 밖 내부 예외 |
+
+결정:
+- `fix_skipped`도 운영 관점에서는 "자동 수정 파이프라인 결과"이므로 Issue 대상에 포함한다.
+- `pipeline_internal_error`는 제목/본문 모두 sanitize fallback 허용 경로로 취급한다.
+- dedup key 입력은 `error_type + error_message + stage` 고정, stack trace는 제외한다.
+
+#### 26-2. 실패 리포트 데이터 계약
+
+신규 `issue_builder.py`에서 아래 구조를 중심으로 조립한다.
+
+| 필드 | 설명 |
+|------|------|
+| `stage` | 위 표의 stage enum 문자열 |
+| `dedup_key` | `sha256(errorType + errorMessage + stage)[:10]` |
+| `title` | `[{dedup_key}] {stage} - {short_error_type}` |
+| `body` | sanitized summary, request URL, timestamp, sanitized reason, sanitized stack trace excerpt, 후속 액션 |
+| `labels` | 기본 `auto-fix-failed` + 설정 라벨 |
+| `issue_enabled` | config 플래그가 false면 GitHub 호출 없이 Discord만 전송 |
+
+본문 원칙:
+- 원문 stack trace/full reason을 그대로 싣지 않는다. sanitize 이후만 허용한다.
+- 본문 길이는 GitHub Issue/Discord에서 모두 과도해지지 않게 excerpt 중심으로 제한한다.
+- sanitize 실패 시 제목은 `[{dedup_key}] unknown_stage - pipeline internal error`로 다운그레이드한다.
+
+#### 26-3. 파일별 구현 책임
+
+| 파일 | 책임 |
+|------|------|
+| `bot/app/config.py` | Issue 관련 env 추가, 기본값/파싱 |
+| `bot/app/services/sanitizer.py` | 민감정보 마스킹, 실패 안전 fallback |
+| `bot/app/services/issue_builder.py` | stage enum, dedup key, title/body/labels 생성 |
+| `bot/app/services/github_service.py` | Issue 조회/생성/댓글 추가 |
+| `bot/app/services/discord_service.py` | failure alert에 `issue_url` 선택 인자 추가 |
+| `bot/app/pipeline.py` | `report_failure()` 도입, Stage 3~9 공통화 |
+| `bot/tests/*` | sanitizer, issue builder, pipeline, discord/github service 회귀 테스트 |
+
+#### 26-4. 구현 순서
+
+1. `config.py` 확장
+2. `sanitizer.py`와 테스트 작성
+3. `issue_builder.py`에서 stage enum + payload 생성 로직 작성
+4. `github_service.py`에 Issue CRUD helper 추가
+5. `discord_service.py`에 `issue_url` 필드 연동
+6. `pipeline.py`에 `report_failure(report, stage, reason, *, issue_payload=None)` 헬퍼 도입
+7. 기존 Stage 3~8 실패 분기를 모두 `report_failure()`로 치환
+8. 최상위 `except`에서 sanitize fallback + `pipeline_internal_error` 처리
+9. 전체 테스트 및 `/api/test-webhook` 검증
+
+이 순서를 고정하는 이유:
+- sanitize/data contract가 먼저 고정돼야 Discord/GitHub/pipeline이 같은 포맷을 공유할 수 있다.
+- `pipeline.py`를 먼저 건드리면 실패 경로가 늘어나고 테스트 기준점이 흔들린다.
+
+#### 26-5. GitHub Issue 동작 정책
+
+생성 정책:
+- `issue_enabled=false`면 Issue 생성/조회/댓글 추가를 모두 건너뛴다.
+- `issue_enabled=true`이고 stage가 Issue 대상이면 open issue 최근 50개 내에서 dedup key를 찾는다.
+- 찾으면 새 Issue 대신 comment 추가 후 기존 URL 반환.
+- 못 찾으면 새 Issue 생성.
+
+댓글 정책:
+- comment는 "재발생 시점 + sanitized reason 요약"만 추가한다.
+- 동일 실행 내에서 중복 comment 방지를 위해 `report_failure()` 호출은 각 실패 경로당 1회만 허용한다.
+
+레이블 정책:
+- 기본 라벨은 `auto-fix-failed`.
+- 추가 라벨은 env에서 comma-separated로 받아 trim 후 병합한다.
+
+PyGithub 정책:
+- 우선 현재 버전 API 범위 내에서 `repo.get_issues(state="open", labels=[...])` 사용.
+- 구현 중 labels 인자 호환 분기 코드가 과도해지면 버전 pin을 별도 커밋으로 분리해 처리한다.
+
+#### 26-6. sanitize 규칙
+
+최소 마스킹 대상:
+- `Authorization: Bearer ...`
+- `Bearer ...`
+- `Cookie: ...`
+- 이메일 주소
+- Google OAuth access token 패턴 (`ya29.`)
+- Google refresh token 계열 패턴 (`1//`)
+
+출력 원칙:
+- 길이를 유지할 필요는 없고 식별 불가능성이 우선이다.
+- 값 전체를 보존하지 말고 `[REDACTED_TOKEN]`, `[REDACTED_EMAIL]` 같은 토큰으로 치환한다.
+- sanitize 함수는 예외를 던지지 않고, 내부 실패 시 안전한 축약 문자열을 반환한다.
+
+#### 26-7. 테스트 매트릭스
+
+필수 테스트:
+- `sanitizer.py`: Bearer/Auth/Cookie/email/`ya29.`/`1//` 마스킹
+- `issue_builder.py`: stage별 title/body/dedup_key 생성, fallback 제목 검증
+- `github_service.py`: 기존 open issue 발견 시 comment 경로, 미발견 시 create 경로
+- `discord_service.py`: `issue_url is None` / 존재 둘 다 embed 생성 검증
+- `pipeline.py`:
+  - AI 결과 없음 → `ai_analysis_failed`
+  - `should_fix=false` → `fix_skipped`
+  - validation 실패 → `ai_validation_failed`
+  - diff 적용 실패 → `diff_apply_failed`
+  - change validation 실패 → `change_validation_failed`
+  - PR 생성 예외 → `pull_request_failed`
+  - 최상위 except → `pipeline_internal_error`
+  - stage 1~2는 Issue 생성 안 함
+
+검증 포인트:
+- Discord로 전달되는 `reason`도 sanitize 결과만 사용되는지 확인
+- dedup key가 동일하면 create 대신 comment로 분기하는지 확인
+- sanitize 실패 fallback 시 원본 민감정보가 제목/본문에 남지 않는지 확인
+
+#### 26-8. 배포/운영 체크리스트
+
+- 신규 env 후보:
+  - `ISSUE_ENABLED=true`
+  - `ISSUE_LABELS=auto-fix-failed`
+  - `ISSUE_DEDUP_WINDOW_HOURS=24`
+- `deploy.yml` 수정은 config 구현 후 실제 신규 env가 확정될 때만 반영
+- `/api/test-webhook` 검증 시나리오:
+  - 정상 Discord 발송
+  - GitHub Issue 생성 enabled 시 issue 생성 또는 기존 issue comment
+  - 민감정보 포함 메시지 입력 시 sanitize 결과 확인
+
+#### 26-9. 완료 조건(Definition of Done)
+
+- Stage 3~9 실패 경로가 모두 `report_failure()`로 통합되어 중복 로직이 제거됨
+- Discord failure alert에 선택적으로 Issue URL이 포함됨
+- 민감정보가 Discord/GitHub 어디에도 원문으로 남지 않음
+- dedup으로 같은 실패가 24시간 내 새 Issue를 무한 생성하지 않음
+- 관련 테스트 통과 및 로컬 수동 시나리오 1회 확인
+
 ## 후속 이슈 (별도 PR)
 
 - **User 모델에 `google_token_expiry` 컬럼 추가 + 선제 refresh 활성화**
