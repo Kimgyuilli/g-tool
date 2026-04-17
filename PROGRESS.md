@@ -2,6 +2,59 @@
 
 > v1 (Phase 0~5) 기록 아카이브: [PROGRESS_V1.md](./PROGRESS_V1.md)
 
+## 2026-04-17 — backend-dev (Phase 25 구현 완료)
+
+### 완료한 작업
+- `backend/app/auth/google_errors.py` **신규**: `GoogleRefreshOutcome` enum + 책임 3분할 헬퍼 (`classify_google_refresh_error` / `disconnect_google_account` / `build_google_refresh_http_exception`). `is_google_scope_mismatch_error`는 `auth/service.py`에 유지하고 내부적으로 재사용
+- `backend/app/auth/dependencies.py`: 로컬 `_disconnect_google_account` 제거, `except RefreshError` 블록을 공통 헬퍼 호출로 교체. **선제 refresh 조건(`credentials.expired and credentials.refresh_token`)은 변경 없음**
+- `backend/app/core/background_sync.py`: 로컬 `_disconnect_google_account` 제거, `is_google_scope_mismatch_error` import를 공통 헬퍼 import로 교체. worker 종료 정책(`return 0`)은 호출부에서 유지
+- `backend/app/calendar/router.py`: 5개 엔드포인트(`get_calendars`, `get_events`, `get_event_detail`, `create_new_event`, `delete_existing_event`)에 `except RefreshError` 방어선 추가. 중복 최소화를 위해 라우터 내부 `_raise_refresh_error` 헬퍼 도입
+- `backend/app/mail/routers/gmail.py`: 3개 엔드포인트(`sync_messages`, `sync_all_messages`, `apply_classification_labels`)에 동일 패턴 방어선 추가. `list_messages`, `get_message`는 DB만 사용하므로 제외
+- `backend/tests/routers/test_calendar.py` **신규**: `/calendars` RefreshError → 401 `token_expired`, invalid_scope → 401 `google_reconnect_required` + 계정 disconnect 검증, `/events` 방어선 검증
+- `backend/tests/routers/test_gmail.py` 확장: `/sync` RefreshError 2가지 시나리오 검증
+
+### 검증
+- `cd backend && uv run ruff check .` — All checks passed
+- `cd backend && uv run pytest` — 37 passed, 2 failed (Phase 25 이전부터 존재하는 `test_auth.py`의 sliding session 테스트 2개 — 무관)
+- 기존 `tests/services/test_background_sync.py::test_sync_user_gmail_disconnects_on_invalid_scope` 통과 (동작 동일성 유지)
+- 기존 `tests/test_auth_dependencies.py` 2개 테스트 통과 (monkeypatch 경로 변경 불필요 — import 심볼이 여전히 dependencies 모듈에 존재)
+
+### 다음 할 일
+- 커밋 + PR 생성 (`fix: Google OAuth refresh 에러를 401로 변환하는 방어선 추가`)
+- 머지 후 Phase 26(Bot 실패 리포트 이슈화) 별도 브랜치에서 착수
+- 머지 후 후속 이슈 등록: "User.google_token_expiry 컬럼 + 선제 refresh 활성화"
+
+### 이슈/참고
+- scope_mismatch 라우터 테스트에서 `db_session` fixture는 identity map 캐시로 commit된 변경을 못 보기 때문에 검증용으로 새 `TestingSessionLocal` 세션을 열어서 User 재조회
+- `tests/routers/test_auth.py::test_me_renews_cookie_*` 2개 실패는 `git stash`로 확인한 결과 Phase 25 이전부터 존재 — 별도 이슈로 처리 대상 아님
+- 라우터의 `_raise_refresh_error` 헬퍼는 404/401 구분을 위해 `HttpError` catch 앞에 위치. `disconnect_google_account`는 `AsyncSession`을 받으므로 각 엔드포인트에 `Depends(get_db)` 추가
+
+## 2026-04-17 — planner (Phase 25, 26 계획 수립)
+
+### 완료한 작업
+- Google Calendar `/api/calendar/calendars` 500 에러(`RefreshError: Token has been expired or revoked`) 근본 원인 조사
+  - 원인: `backend/app/auth/service.py:58` `build_credentials()`가 `expiry`를 설정하지 않아 `credentials.expired==False`로 판정됨. `backend/app/auth/dependencies.py:47` 선제 refresh 분기를 건너뛰고, 실제 API 호출 중 googleapiclient 내부 refresh가 `RefreshError`를 raise. Calendar/Gmail 라우터는 `HttpError`만 catch하므로 500으로 전파.
+- 두 차례 외부 리뷰 반영하여 계획서 v3까지 확정
+  - Task 1: 라우터 방어선 + 공통 모듈(`auth/google_errors.py`) 추출. **선제 refresh 강화는 expiry 저장 컬럼 부재로 제외** → 별도 후속 이슈로 분리
+  - Task 2: PR 생성 실패 시 GitHub Issue 업로드. sanitize 선행 + dedup(24h, label + 최근 50개) + sanitize 실패 시 제목 최소화
+- PLAN.md에 Phase 25, 26 추가
+- 브랜치 생성: `fix/google-refresh-error-handling`
+
+### 다음 할 일 (새 세션에서 이어서)
+1. **BE-1부터 순차 진행** — Phase 25 태스크 8개 (BE-1 → BE-8)
+2. Phase 25 머지 후 Phase 26 별도 브랜치에서 착수
+3. Phase 25 머지 후 후속 이슈 등록: "expiry persistence + 선제 refresh 활성화"
+
+### 이슈/참고
+- **핵심 결정 사항 재확인**
+  - `auth/google_errors.py`는 책임 3분할: `classify_google_refresh_error`(분류만, 부수효과 없음) / `disconnect_google_account`(부수효과) / `build_google_refresh_http_exception`(HTTP 변환)
+  - Enum `GoogleRefreshOutcome`: `TOKEN_INVALID_OR_EXPIRED` | `SCOPE_MISMATCH`
+  - `dependencies.py:47` 선제 refresh 조건은 **변경하지 않음** (expiry 저장소 없어서 매 요청 refresh 유발)
+  - Gmail 라우터 방어선 대상: `sync`, `sync/full`, `apply-labels` 3개 (`messages`, `messages/{mail_id}`는 DB만 사용이므로 제외)
+  - 테스트 파일 경로: `backend/tests/routers/test_calendar.py`(신규), `backend/tests/routers/test_gmail.py`(확장)
+- **worker(`background_sync.py`) 동작 동일성**: 공통화 후에도 router→401, worker→`return 0` 정책은 호출부에서 유지. 공통 함수는 "분류"와 "disconnect 실행"만 담당
+- 기존 테스트(`tests/services/test_background_sync.py`, `tests/test_auth_dependencies.py`)는 동작 유지되어야 함
+
 ## 2026-03-17 — agent (Phase 24: 세션 만료 개선)
 ### 완료한 작업
 - `backend/app/config.py`: JWT 만료 시간 24시간(1440분) → 7일(10080분)

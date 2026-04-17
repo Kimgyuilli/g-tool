@@ -367,3 +367,60 @@
 | JWT 만료 시간 24시간 → 7일 | agent | done | — | config.py |
 | apiFetch 401 인터셉터 추가 | agent | done | — | api.ts, /auth/me 제외 |
 | /auth/me sliding session | agent | done | — | 남은 시간 < 절반 시 토큰 갱신 |
+
+## Phase 25: Google OAuth refresh 에러 방어선
+
+> Calendar/Gmail API 호출 중 googleapiclient 내부에서 발생하는 `RefreshError`가 500으로 터지는 문제 해결. 선제 refresh 강화는 expiry 저장 컬럼 부재로 본 Phase 제외하고 별도 후속 이슈로 분리.
+>
+> 브랜치: `fix/google-refresh-error-handling`
+>
+> 핵심 결정 사항
+> - 공통 모듈은 `backend/app/auth/google_errors.py`에 두고 router/worker 양쪽에서 재사용
+> - 책임 3분할: `classify_google_refresh_error`(분류만) / `disconnect_google_account`(부수효과) / `build_google_refresh_http_exception`(HTTP 변환)
+> - Enum `GoogleRefreshOutcome`: `TOKEN_INVALID_OR_EXPIRED` | `SCOPE_MISMATCH` (invalid_grant / 일반 만료 / 일시적 refresh 실패까지 포괄)
+> - 선제 refresh 조건은 **변경 없음** — expiry 저장소 없는 상태에서 조건 확대하면 매 요청 refresh 유발
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| BE-1: auth/google_errors.py 신규 모듈 작성 | backend-dev | done | — | Enum + 3개 함수 분리 |
+| BE-2: dependencies.py 공통 헬퍼 호출로 리팩토링 | backend-dev | done | BE-1 | 선제 refresh 조건 유지 |
+| BE-3: background_sync.py 공통 헬퍼 사용 | backend-dev | done | BE-1 | worker 종료 정책(return 0) 유지 |
+| BE-4: Calendar router 5개 엔드포인트 방어선 | backend-dev | done | BE-1 | calendars, events, event_detail, create, delete |
+| BE-5: Gmail router 3개 엔드포인트 방어선 | backend-dev | done | BE-1 | sync, sync/full, apply-labels (messages 2개 제외) |
+| BE-6: 라우터 회귀 테스트 추가 | backend-dev | done | BE-4, BE-5 | tests/routers/test_calendar.py 신규, test_gmail.py 확장 |
+| BE-7: 기존 dependency 테스트 import 경로 조정 | backend-dev | done | BE-1 | monkeypatch 경로 변경 불필요 (import만 redirect) |
+| BE-8: Lint + 전체 테스트 통과 확인 | backend-dev | done | 위 전체 | ruff clean, pytest 37 passed (무관 test_auth 2개 사전 failure) |
+
+## Phase 26: Bot 실패 리포트 이슈화
+
+> PR 생성 실패 시 Discord 알림만 오는 대신 GitHub Issue에 분석 리포트 자동 업로드. dedup + sanitize 적용.
+>
+> 브랜치: 별도 브랜치 (Phase 25 머지 후 생성)
+>
+> 핵심 결정 사항
+> - Issue 생성 대상: pipeline 실패 경로 3~9 (AI 분석 이후). 1~2(스택/파일 조회 실패)는 Discord만
+> - sanitize는 **선행 조건** — Bearer/Authorization/쿠키/이메일/`ya29.`/`1//` 토큰 패턴 마스킹 후 Issue/Discord 진입
+> - sanitize 실패 시 제목은 `[hash] unknown_stage — pipeline internal error` 고정 포맷, 원본값 포함 금지
+> - dedup: `sha256(errorType+errorMessage+stage)[:10]` → title prefix `[{dedup_key}]` + label `auto-fix-failed` + 24h 윈도우
+> - dedup 조회: `repo.get_issues(state="open", labels=["auto-fix-failed"])` + 최근 50개 내 로컬 매칭. **50개 내 미발견 시 새 Issue 생성**
+> - PyGithub version pin: `get_issues` 호환성 분기 코드가 지저분해지면 pin 우선
+
+| 태스크 | 담당 | 상태 | 의존 | 비고 |
+|--------|------|------|------|------|
+| BOT-1: config 확장 | backend-dev | pending | — | issue_enabled, issue_labels, issue_dedup_window_hours |
+| BOT-2: sanitizer.py 신규 + 단위 테스트 | backend-dev | pending | — | Bearer/Auth/cookie/email/OAuth token 마스킹 |
+| BOT-3: github_service.py 확장 | backend-dev | pending | BOT-1 | create_issue, find_open_issue_by_key, add_issue_comment |
+| BOT-4: issue_builder.py 신규 | backend-dev | pending | BOT-2 | stage enum, dedup_key, sanitized payload만 허용 |
+| BOT-5: discord_service.send_failure_alert 시그니처 확장 | backend-dev | pending | — | issue_url: str \| None 인자 추가 |
+| BOT-6: pipeline.py report_failure 헬퍼로 통합 | backend-dev | pending | BOT-3, BOT-4, BOT-5 | 실패 경로 3~8 통일 |
+| BOT-7: pipeline L221 최상위 except 처리 | backend-dev | pending | BOT-6 | unknown_stage 라벨, sanitize fallback 제목 최소화 |
+| BOT-8: 테스트 | backend-dev | pending | BOT-6, BOT-7 | pipeline 분기별 Issue 호출 검증 + Discord sanitize 회귀 테스트 명시 |
+| BOT-9: 로컬 검증 + deploy.yml env 추가 여부 판단 | backend-dev | pending | BOT-8 | /api/test-webhook 시나리오 |
+
+## 후속 이슈 (별도 PR)
+
+- **User 모델에 `google_token_expiry` 컬럼 추가 + 선제 refresh 활성화**
+  - 마이그레이션 필요 (스키마 변경)
+  - `exchange_code` / refresh 성공 시 `credentials.expiry` 저장
+  - `dependencies.py`에서 `credentials.expired` 기반 선제 refresh 활성화 가능
+  - Phase 25가 머지된 뒤에 별도 이슈로 진행
