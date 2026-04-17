@@ -1,7 +1,8 @@
 from unittest.mock import patch
 
-from app.pipeline import apply_changes, process_error, validate_changes
+from app.pipeline import apply_changes, process_error, report_failure, validate_changes
 from app.schemas import ErrorReport
+from app.services.issue_builder import FailureStage
 from app.services.ai_service import validate_ai_result
 from app.services.pr_builder import build_diff
 
@@ -187,16 +188,23 @@ async def test_process_error_no_stack_entries(mock_discord):
 
     mock_discord["error"].assert_awaited_once()
     mock_discord["pr"].assert_not_awaited()
+    mock_discord["failure"].assert_awaited_once()
+    args = mock_discord["failure"].await_args.args
+    assert args[1] == "스택트레이스에서 프로젝트 코드를 찾지 못함"
 
 
 async def test_process_error_ai_failure_sends_failure_alert(sample_error_report, mock_discord):
     with (
         patch("app.pipeline.read_files", return_value={FILE_PATH: "code"}),
         patch("app.pipeline.analyze_error", return_value=None),
+        patch("app.pipeline.create_issue", return_value="https://github.com/owner/repo/issues/1"),
+        patch("app.pipeline.find_open_issue_by_key", return_value=None),
     ):
         await process_error(sample_error_report)
 
     mock_discord["failure"].assert_awaited_once()
+    args = mock_discord["failure"].await_args.args
+    assert args[2] == "https://github.com/owner/repo/issues/1"
 
 
 async def test_process_error_should_fix_false_skips_pr(sample_error_report, mock_discord):
@@ -204,6 +212,8 @@ async def test_process_error_should_fix_false_skips_pr(sample_error_report, mock
     with (
         patch("app.pipeline.read_files", return_value={FILE_PATH: "code"}),
         patch("app.pipeline.analyze_error", return_value=ai_result),
+        patch("app.pipeline.create_issue", return_value="https://github.com/owner/repo/issues/2"),
+        patch("app.pipeline.find_open_issue_by_key", return_value=None),
         patch("app.pipeline.create_pull_request") as mock_pr,
     ):
         await process_error(sample_error_report)
@@ -219,6 +229,8 @@ async def test_process_error_ai_validation_failure_sends_failure_alert(sample_er
     with (
         patch("app.pipeline.read_files", return_value={FILE_PATH: "code"}),
         patch("app.pipeline.analyze_error", return_value=ai_result),
+        patch("app.pipeline.create_issue", return_value="https://github.com/owner/repo/issues/3"),
+        patch("app.pipeline.find_open_issue_by_key", return_value=None),
         patch("app.pipeline.create_pull_request", return_value="url") as mock_pr,
     ):
         await process_error(sample_error_report)
@@ -234,6 +246,8 @@ async def test_process_error_diff_apply_failure(sample_error_report, mock_discor
     with (
         patch("app.pipeline.read_files", return_value={FILE_PATH: ORIGINAL_CODE}),
         patch("app.pipeline.analyze_error", return_value=ai_result),
+        patch("app.pipeline.create_issue", return_value="https://github.com/owner/repo/issues/4"),
+        patch("app.pipeline.find_open_issue_by_key", return_value=None),
         patch("app.pipeline.create_pull_request") as mock_pr,
     ):
         await process_error(sample_error_report)
@@ -247,11 +261,50 @@ async def test_process_error_pr_failure_sends_failure_alert(sample_error_report,
     with (
         patch("app.pipeline.read_files", return_value={FILE_PATH: ORIGINAL_CODE}),
         patch("app.pipeline.analyze_error", return_value=ai_result),
+        patch("app.pipeline.create_issue", return_value="https://github.com/owner/repo/issues/5"),
+        patch("app.pipeline.find_open_issue_by_key", return_value=None),
         patch("app.pipeline.create_pull_request", side_effect=RuntimeError("fail")),
     ):
         await process_error(sample_error_report)
 
     mock_discord["failure"].assert_awaited_once()
+
+
+async def test_report_failure_skips_issue_for_early_stage(sample_error_report, mock_discord):
+    with (
+        patch("app.pipeline.find_open_issue_by_key") as mock_find,
+        patch("app.pipeline.create_issue") as mock_create,
+    ):
+        await report_failure(
+            sample_error_report,
+            FailureStage.STACK_TRACE_PARSE_FAILED,
+            "failed early",
+        )
+
+    mock_find.assert_not_called()
+    mock_create.assert_not_called()
+    args = mock_discord["failure"].await_args.args
+    assert args[2] is None
+
+
+async def test_report_failure_reuses_existing_issue(sample_error_report, mock_discord):
+    existing_issue = type("Issue", (), {"html_url": "https://github.com/owner/repo/issues/9"})()
+    with (
+        patch("app.pipeline.find_open_issue_by_key", return_value=existing_issue),
+        patch("app.pipeline.add_issue_comment", return_value=existing_issue.html_url) as mock_comment,
+        patch("app.pipeline.create_issue") as mock_create,
+    ):
+        await report_failure(
+            sample_error_report,
+            FailureStage.PULL_REQUEST_FAILED,
+            "Authorization: Bearer secret-token",
+        )
+
+    mock_comment.assert_called_once()
+    mock_create.assert_not_called()
+    args = mock_discord["failure"].await_args.args
+    assert "secret-token" not in args[1]
+    assert args[2] == existing_issue.html_url
 
 
 # --- build_diff ---

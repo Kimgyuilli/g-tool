@@ -30,3 +30,11 @@ async def test_send_failure_alert_posts_correct_embed(mock_post, sample_error_re
     assert embed["title"] == "⚠️ 에러 자동 수정 실패"
     assert embed["color"] == 0xFFA500
     assert any(f["value"] == "AI 실패" for f in embed["fields"])
+
+
+@patch("app.services.discord_service._post_webhook", new_callable=AsyncMock)
+async def test_send_failure_alert_includes_issue_url(mock_post, sample_error_report):
+    await send_failure_alert(sample_error_report, "AI 실패", "https://github.com/owner/repo/issues/1")
+    payload = mock_post.call_args[0][0]
+    embed = payload["embeds"][0]
+    assert any(f["name"] == "Issue" for f in embed["fields"])

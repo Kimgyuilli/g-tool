@@ -12,6 +12,9 @@ class Settings(BaseSettings):
     import_depth: int = 2
     local_source_path: str = ""
     container_workdir: str = "/app"
+    issue_enabled: bool = True
+    issue_labels: str = "auto-fix-failed"
+    issue_dedup_window_hours: int = 24
 
     model_config = {"env_file": ".env"}
 
