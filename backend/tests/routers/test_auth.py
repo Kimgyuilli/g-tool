@@ -118,14 +118,7 @@ async def test_me_renews_cookie_when_token_is_past_half_life(
     client: AsyncClient, sample_user, monkeypatch
 ):
     now = datetime(2026, 4, 8, tzinfo=UTC)
-    original_token = jwt.encode(
-        {
-            "sub": str(sample_user.id),
-            "exp": now + timedelta(minutes=settings.jwt_expire_minutes / 4),
-        },
-        settings.secret_key,
-        algorithm="HS256",
-    )
+    original_token = "token-near-expiry"
 
     class _FrozenDateTime(datetime):
         @classmethod
@@ -136,6 +129,21 @@ async def test_me_renews_cookie_when_token_is_past_half_life(
         def fromtimestamp(cls, timestamp, tz=None):
             return datetime.fromtimestamp(timestamp, tz=tz)
 
+    monkeypatch.setattr(
+        "app.core.dependencies.verify_access_token",
+        lambda token: sample_user.id,
+    )
+    monkeypatch.setattr(
+        "app.auth.router.pyjwt.decode",
+        lambda token, key, algorithms: {
+            "sub": str(sample_user.id),
+            "exp": int(
+                (
+                    now + timedelta(minutes=settings.jwt_expire_minutes / 4)
+                ).timestamp()
+            ),
+        },
+    )
     monkeypatch.setattr("app.auth.router.datetime", _FrozenDateTime)
 
     response = await client.get(
@@ -153,14 +161,7 @@ async def test_me_does_not_renew_cookie_when_token_has_enough_time_left(
     client: AsyncClient, sample_user, monkeypatch
 ):
     now = datetime(2026, 4, 8, tzinfo=UTC)
-    token = jwt.encode(
-        {
-            "sub": str(sample_user.id),
-            "exp": now + timedelta(minutes=settings.jwt_expire_minutes),
-        },
-        settings.secret_key,
-        algorithm="HS256",
-    )
+    token = "token-with-enough-time"
 
     class _FrozenDateTime(datetime):
         @classmethod
@@ -171,6 +172,21 @@ async def test_me_does_not_renew_cookie_when_token_has_enough_time_left(
         def fromtimestamp(cls, timestamp, tz=None):
             return datetime.fromtimestamp(timestamp, tz=tz)
 
+    monkeypatch.setattr(
+        "app.core.dependencies.verify_access_token",
+        lambda token: sample_user.id,
+    )
+    monkeypatch.setattr(
+        "app.auth.router.pyjwt.decode",
+        lambda token, key, algorithms: {
+            "sub": str(sample_user.id),
+            "exp": int(
+                (
+                    now + timedelta(minutes=settings.jwt_expire_minutes)
+                ).timestamp()
+            ),
+        },
+    )
     monkeypatch.setattr("app.auth.router.datetime", _FrozenDateTime)
 
     response = await client.get(
