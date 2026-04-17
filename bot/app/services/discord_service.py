@@ -4,6 +4,7 @@ import httpx
 from tenacity import retry, stop_after_attempt, wait_fixed
 
 from app.config import settings
+from app.services.sanitizer import sanitize_excerpt
 
 logger = logging.getLogger(__name__)
 
@@ -41,16 +42,22 @@ async def _post_webhook(payload: dict) -> None:
     response.raise_for_status()
 
 
+def _build_sanitized_report_fields(report) -> list[dict]:
+    return [
+        {"name": "에러 타입", "value": sanitize_excerpt(report.errorType, limit=256), "inline": True},
+        {"name": "요청", "value": sanitize_excerpt(report.requestUrl, limit=512), "inline": True},
+        {"name": "메시지", "value": sanitize_excerpt(report.errorMessage, limit=1024)},
+    ]
+
+
 @retry(stop=stop_after_attempt(2), wait=wait_fixed(1), reraise=True)
 async def send_error_alert(report) -> None:
     embed = {
         "title": "\U0001f6a8 500 에러 발생",
         "color": 0xFF0000,
         "fields": [
-            {"name": "에러 타입", "value": report.errorType, "inline": True},
-            {"name": "요청", "value": report.requestUrl, "inline": True},
-            {"name": "메시지", "value": report.errorMessage[:1024]},
-            {"name": "발생 시간", "value": report.timestamp, "inline": True},
+            *_build_sanitized_report_fields(report),
+            {"name": "발생 시간", "value": sanitize_excerpt(report.timestamp, limit=120), "inline": True},
         ],
     }
     await _post_webhook({"embeds": [embed]})
@@ -72,13 +79,11 @@ async def send_pr_alert(pr_url: str, summary: str) -> None:
 @retry(stop=stop_after_attempt(2), wait=wait_fixed(1), reraise=True)
 async def send_failure_alert(report, reason: str, issue_url: str | None = None) -> None:
     fields = [
-        {"name": "에러 타입", "value": report.errorType, "inline": True},
-        {"name": "요청", "value": report.requestUrl, "inline": True},
-        {"name": "메시지", "value": report.errorMessage[:1024]},
-        {"name": "실패 사유", "value": reason[:1024]},
+        *_build_sanitized_report_fields(report),
+        {"name": "실패 사유", "value": sanitize_excerpt(reason, limit=1024)},
     ]
     if issue_url:
-        fields.append({"name": "Issue", "value": issue_url})
+        fields.append({"name": "Issue", "value": sanitize_excerpt(issue_url, limit=512)})
 
     embed = {
         "title": "\u26a0\ufe0f 에러 자동 수정 실패",

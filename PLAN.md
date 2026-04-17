@@ -395,7 +395,7 @@
 
 > PR 생성 실패 시 Discord 알림만 오는 대신 GitHub Issue에 분석 리포트 자동 업로드. dedup + sanitize 적용.
 >
-> 브랜치: 별도 브랜치 (Phase 25 머지 후 생성)
+> 브랜치: `phase26-bot-failure-issue-report`
 >
 > 핵심 결정 사항
 > - Issue 생성 대상: pipeline 실패 경로 3~9 (AI 분석 이후). 1~2(스택/파일 조회 실패)는 Discord만
@@ -407,15 +407,15 @@
 
 | 태스크 | 담당 | 상태 | 의존 | 비고 |
 |--------|------|------|------|------|
-| BOT-1: config 확장 | backend-dev | pending | — | issue_enabled, issue_labels, issue_dedup_window_hours |
-| BOT-2: sanitizer.py 신규 + 단위 테스트 | backend-dev | pending | — | Bearer/Auth/cookie/email/OAuth token 마스킹 |
-| BOT-3: github_service.py 확장 | backend-dev | pending | BOT-1 | create_issue, find_open_issue_by_key, add_issue_comment |
-| BOT-4: issue_builder.py 신규 | backend-dev | pending | BOT-2 | stage enum, dedup_key, sanitized payload만 허용 |
-| BOT-5: discord_service.send_failure_alert 시그니처 확장 | backend-dev | pending | — | issue_url: str \| None 인자 추가 |
-| BOT-6: pipeline.py report_failure 헬퍼로 통합 | backend-dev | pending | BOT-3, BOT-4, BOT-5 | 실패 경로 3~8 통일 |
-| BOT-7: pipeline L221 최상위 except 처리 | backend-dev | pending | BOT-6 | unknown_stage 라벨, sanitize fallback 제목 최소화 |
-| BOT-8: 테스트 | backend-dev | pending | BOT-6, BOT-7 | pipeline 분기별 Issue 호출 검증 + Discord sanitize 회귀 테스트 명시 |
-| BOT-9: 로컬 검증 + deploy.yml env 추가 여부 판단 | backend-dev | pending | BOT-8 | /api/test-webhook 시나리오 |
+| BOT-1: config 확장 | backend-dev | done | — | `issue_enabled`, `issue_labels`, `issue_dedup_window_hours` 추가 |
+| BOT-2: sanitizer.py 신규 + 단위 테스트 | backend-dev | done | — | Bearer/Auth/Cookie/email/`ya29.`/`1//` 마스킹 + excerpt 유틸 |
+| BOT-3: github_service.py 확장 | backend-dev | done | BOT-1 | `create_issue`, `find_open_issue_by_key`, `add_issue_comment` |
+| BOT-4: issue_builder.py 신규 | backend-dev | done | BOT-2 | stage enum, dedup_key, sanitized payload만 허용 |
+| BOT-5: discord_service.send_failure_alert 시그니처 확장 | backend-dev | done | — | `issue_url: str \| None` 인자 + Discord 필드 sanitize |
+| BOT-6: pipeline.py report_failure 헬퍼로 통합 | backend-dev | done | BOT-3, BOT-4, BOT-5 | 실패 경로 3~8 통일, stage 1~2는 Discord only 유지 |
+| BOT-7: pipeline L221 최상위 except 처리 | backend-dev | done | BOT-6 | `pipeline_internal_error` + sanitize fallback 제목 |
+| BOT-8: 테스트 | backend-dev | done | BOT-6, BOT-7 | Issue 분기 + Discord sanitize 회귀 테스트 포함, `bot` 테스트 67 passed |
+| BOT-9: 로컬 검증 + deploy.yml env 추가 여부 판단 | backend-dev | pending | BOT-8 | `/api/test-webhook` 수동 시나리오와 deploy env 반영 여부는 미진행 |
 
 ### Phase 26 구현 계획 구체화
 
